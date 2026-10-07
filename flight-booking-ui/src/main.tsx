@@ -8,6 +8,9 @@ import { LeftPanel } from './components/LeftPanel';
 import { ConversationPanel } from './components/ConversationPanel';
 import { Backstage } from './components/Backstage';
 import './styles.css';
+import { initTheme } from './theme';
+
+initTheme();
 
 onApiLog(logApi);
 

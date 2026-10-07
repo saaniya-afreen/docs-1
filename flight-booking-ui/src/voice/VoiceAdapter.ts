@@ -11,7 +11,7 @@ import type { CallStatus, TranscriptLine } from '../state/store';
 export interface VoiceAdapter {
   connect(): Promise<void>;
   disconnect(): Promise<void>;
-  /** Typed message from the "Type to Sara…" box. */
+  /** Typed message from the "Type to Mia…" box. */
   sendText(text: string): void;
   setMuted(muted: boolean): void;
   /**

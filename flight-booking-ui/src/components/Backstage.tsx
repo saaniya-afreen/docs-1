@@ -2,12 +2,14 @@ import { useState } from 'react';
 import { usingMockApi } from '../api';
 import { playDemo, usingMockVoice } from '../voice/session';
 import { setState, useAppState } from '../state/store';
+import { getTheme, setTheme, type Theme } from '../theme';
 
 /** Developer drawer: data sources, scripted demo, and the live API call log. */
 export function Backstage() {
   const open = useAppState((s) => s.backstageOpen);
   const log = useAppState((s) => s.apiLog);
   const [expanded, setExpanded] = useState<number | null>(null);
+  const [theme, setThemeState] = useState<Theme>(getTheme);
   if (!open) return null;
 
   return (
@@ -24,6 +26,21 @@ export function Backstage() {
         <dt>Voice</dt>
         <dd>{usingMockVoice ? 'Mock agent (typed input)' : 'OneInbox web SDK'}</dd>
       </dl>
+      <div className="bs-actions" role="group" aria-label="Theme">
+        {(['blue', 'mono'] as const).map((t) => (
+          <button
+            key={t}
+            className={`btn small ${theme === t ? 'primary' : 'ghost'}`}
+            aria-pressed={theme === t}
+            onClick={() => {
+              setTheme(t);
+              setThemeState(t);
+            }}
+          >
+            {t === 'mono' ? 'Black & white' : 'Light blue'}
+          </button>
+        ))}
+      </div>
       <div className="bs-actions">
         {usingMockVoice && (
           <button className="btn primary small" onClick={() => playDemo()}>

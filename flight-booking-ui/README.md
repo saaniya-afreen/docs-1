@@ -1,6 +1,6 @@
 # Flight Booking Voice Agent: UI
 
-Two-panel demo UI for the flight-change voice agent. The left panel shows the booking (trip, flight options, seat map, bags, review, confirmed). The right panel shows the live conversation with the agent (Sara). The flow follows the PRD (scenes 1–6: SIN → NRT, NS1142 → NS1156, seat 23C → 6A, +1 bag, €15 refund).
+Two-panel demo UI for the flight-change voice agent. The left panel shows the booking (trip, flight options, seat map, bags, review, confirmed). The right panel shows the live conversation with the agent (Mia). The flow follows the PRD (scenes 1–6: SIN → NRT, NS1142 → NS1156, seat 23C → 6A, +1 bag, €15 refund).
 
 It runs **today with no backend and no SDK**. A mock API (seeded data) and a mock voice agent (typed input, scripted replies) stand in for both. Each one is behind a small interface, so the real pieces plug in without touching the screens.
 
@@ -92,4 +92,4 @@ The mock data covers these cases (all flights SIN → NRT, Thu 8 Oct 2026):
 
 Seat pricing: rows 1–5 cost €15, exit rows 12–13 cost €25, all other rows are free. Row 30 is blocked. Extra bags cost €45 each, with 1 bag included. **Reset demo** in the dev panel restores the seed data.
 
-The UI has no airline branding and uses a black-and-white palette. The agent name is set with `VITE_AGENT_NAME` (default "Sara", from the PRD).
+The UI has no airline branding. It has two themes: light blue (default) and black-and-white. Switch in the dev panel, with `?theme=mono` in the URL, or set `VITE_THEME=mono` for the build. The agent name is set with `VITE_AGENT_NAME` (default "Mia").

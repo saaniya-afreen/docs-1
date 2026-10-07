@@ -186,7 +186,7 @@ export function createMockAdapter(h: VoiceHandlers): VoiceAdapter {
       await sleep(900);
       enqueue(async () => {
         const b = await tool<any>('getBooking');
-        await say(`Hi ${b.customer_name}, I'm Sara. What would you like to change on your trip: a flight, a seat or your bags?`);
+        await say(`Hi ${b.customer_name}, I'm Mia. What would you like to change on your trip: a flight, a seat or your bags?`);
       });
     },
     async disconnect() {
