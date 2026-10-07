@@ -3,6 +3,7 @@ import { usingMockApi } from '../api';
 import { playDemo, usingMockVoice } from '../voice/session';
 import { setState, useAppState } from '../state/store';
 import { getTheme, setTheme, type Theme } from '../theme';
+import { getRealtimeStatus, onRealtimeStatus, realtimeEnabled, type RealtimeStatus } from '../agent/realtime';
 
 /** Developer drawer: data sources, scripted demo, and the live API call log. */
 export function Backstage() {
@@ -10,6 +11,8 @@ export function Backstage() {
   const log = useAppState((s) => s.apiLog);
   const [expanded, setExpanded] = useState<number | null>(null);
   const [theme, setThemeState] = useState<Theme>(getTheme);
+  const [rt, setRt] = useState<RealtimeStatus>(getRealtimeStatus);
+  onRealtimeStatus(setRt);
   if (!open) return null;
 
   return (
@@ -25,6 +28,8 @@ export function Backstage() {
         <dd>{usingMockApi ? 'Mock (in-browser seed data)' : String(import.meta.env.VITE_API_BASE_URL)}</dd>
         <dt>Voice</dt>
         <dd>{usingMockVoice ? 'Mock agent (typed input)' : 'OneInbox web SDK'}</dd>
+        <dt>Sync</dt>
+        <dd>{realtimeEnabled ? `Supabase Realtime · ${rt}` : 'Off (set VITE_SUPABASE_URL / VITE_SUPABASE_ANON_KEY)'}</dd>
       </dl>
       <div className="bs-actions" role="group" aria-label="Theme">
         {(['blue', 'mono'] as const).map((t) => (

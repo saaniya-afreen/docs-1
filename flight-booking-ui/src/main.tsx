@@ -3,6 +3,7 @@ import { createRoot } from 'react-dom/client';
 import { onApiLog } from './api';
 import { tools, invokeTool } from './agent/tools';
 import { applyAgentEvent } from './agent/uiEvents';
+import { handleUiEvent, startRealtime, syncBookingFromServer } from './agent/realtime';
 import { logApi } from './state/store';
 import { LeftPanel } from './components/LeftPanel';
 import { ConversationPanel } from './components/ConversationPanel';
@@ -15,12 +16,15 @@ initTheme();
 onApiLog(logApi);
 
 // Handy for wiring/testing the SDK from the browser console.
-Object.assign(window, { flightUI: { tools, invokeTool, applyAgentEvent } });
+Object.assign(window, { flightUI: { tools, invokeTool, applyAgentEvent, handleUiEvent, syncBookingFromServer } });
 
 function App() {
   useEffect(() => {
     // Show the current booking before the call starts, like the reference.
-    tools.getBooking({}, 'user').catch(() => {});
+    tools
+      .getBooking({}, 'user')
+      .then((b) => startRealtime(b.booking_reference))
+      .catch(() => {});
   }, []);
   return (
     <div className="stage">

@@ -56,21 +56,32 @@ Implement `src/voice/oneInboxAdapter.ts`; the skeleton has the TODOs. Then set `
 - forward transcript lines (partial and final)
 - forward typed text, and send short context notes when the customer clicks something on screen
 
-### 3. How the screen follows the agent
+### 3. How the screen follows the agent (Supabase Realtime)
 
-This is the key decision for tomorrow. It depends on where the agent's tools run:
+The voice agent calls the backend APIs itself, from the OneInbox side, so the browser never sees those calls. The screen stays in sync through Supabase Realtime (`src/agent/realtime.ts`):
 
-- **Tools run in the browser.** The SDK emits a tool call and the page returns the result. Forward the call to `invokeTool(name, args)` (already wired as `onToolCall`). Tool names: `getBooking`, `searchFlights`, `changeFlight`, `showSeats`, `changeSeat`, `setBags`, `getQuote`, `confirmBooking`, `showView`. Arguments are in `src/agent/tools.ts`. This gives instant UI updates.
-- **Tools run on the server.** The agent calls Supabase directly, so the page never sees the calls. The UI then needs a push channel, for example Supabase Realtime on a `ui_events` table, or an SDK custom event. Feed each message into `applyAgentEvent()` in `src/agent/uiEvents.ts`. The event types are listed there.
+1. **bookings table (automatic).** When the agent changes this booking (flight, seat, bags, confirm), the screen re-fetches `GET /bookings/{ref}` and jumps to the step that changed. No extra backend work is needed beyond turning on Realtime for `bookings`.
+2. **ui_events table (optional).** For things that don't change a row, such as showing the flight list, highlighting window seats, or opening the review, each API inserts `{ booking_ref, type, payload }`. Types: `flights_shown` (`{"sort":"cheapest"}`), `seats_shown` (`{"seat_type":"window"}`), `quote_ready`, `show_view` (`{"view":"bags"}`). Payloads can be empty; the screen fetches the data itself.
 
-To test from the browser console: `flightUI.invokeTool('searchFlights', { sort: 'cheapest' })`.
+Setup: run `supabase/ui_events.sql` in the Supabase SQL editor, then set `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY`. The dev panel shows the sync status.
+
+```
+Customer speaks → agent (OneInbox) → Supabase API → bookings row / ui_events row
+                                                         ↓ Realtime
+                                                   screen updates
+```
+
+If the OneInbox SDK can instead forward the agent's tool calls to the browser, `invokeTool(name, args)` handles them directly (tool names in `src/agent/tools.ts`).
+
+Test from the browser console: `flightUI.handleUiEvent({ booking_ref: 'ABC123', type: 'flights_shown', payload: { sort: 'cheapest' } })`.
 
 ## Structure
 
 ```
 src/
   api/         BookingApi interface, endpoints map, HTTP client, mock backend + seed data
-  agent/       tools.ts (actions shared by agent + clicks), uiEvents.ts (server-pushed updates)
+  agent/       tools.ts (actions shared by agent + clicks), uiEvents.ts + realtime.ts (server-pushed updates)
+supabase/      ui_events.sql (Realtime setup for screen sync)
   voice/       VoiceAdapter interface, mock agent, OneInbox SDK skeleton, session wiring
   state/       tiny global store
   components/  LeftPanel, views (trip/flights/seats/bags/review/confirmed), SeatMap, ConversationPanel, Backstage (dev panel)
