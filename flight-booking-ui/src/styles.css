@@ -305,20 +305,28 @@ button.seat.free:hover { border-color: var(--black); background: var(--paper-2);
   --ink: #0d2744;
   --ink-2: #3c5674;
   --muted: #7d93ad;
-  --line: #dbe8f6;
-  --line-strong: #a9c8ea;
+  --line: #e3ecf7;
+  --line-strong: #1f6fd1;
   --paper: #ffffff;
-  --paper-2: #f0f6fd;
+  --paper-2: #f5f9fe;
 }
 [data-theme='blue'] body,
-[data-theme='blue'] .device { background: #f7fbff; }
+[data-theme='blue'] .device { background: #ffffff; }
 [data-theme='blue'] .accent { color: #1f6fd1; }
 [data-theme='blue'] .route-hero { background: #fff; }
-[data-theme='blue'] .fact { background: #eaf3fd; }
+[data-theme='blue'] .fact { background: #fff; border: 1px solid #d6e6f8; }
+[data-theme='blue'] .topbar { border-bottom: 2px solid #1f6fd1; }
+[data-theme='blue'] .brand { color: #1f6fd1; font-weight: 600; }
+[data-theme='blue'] .time-xl, [data-theme='blue'] .rc-time > span { color: #1f6fd1; }
+[data-theme='blue'] .link { color: #1f6fd1; }
+[data-theme='blue'] .chip { color: #1f6fd1; }
+[data-theme='blue'] .chip.on { color: #fff; }
+[data-theme='blue'] .pill { color: #1f6fd1; }
+[data-theme='blue'] .pill:hover { color: #fff; }
 [data-theme='blue'] .route-line .line, [data-theme='blue'] .rc-line .line { border-top-color: #7fb1e8; }
 [data-theme='blue'] .route-line .plane, [data-theme='blue'] .rc-line .plane { color: #1f6fd1; }
-[data-theme='blue'] .banner { background: #e3f0fd; color: #0d2744; border: 1px solid #b9d6f4; }
-[data-theme='blue'] .banner-dot { background: #1f6fd1; }
+[data-theme='blue'] .banner { background: #1f6fd1; color: #fff; }
+[data-theme='blue'] .banner-dot { background: #fff; }
 [data-theme='blue'] .tag.warn { color: #0d2744; border-color: #0d2744; }
 [data-theme='blue'] .seat.free { border-color: #8ab8ea; }
 [data-theme='blue'] .seat.taken { background: #dde6f0; }
@@ -329,8 +337,9 @@ button.seat.free:hover { border-color: var(--black); background: var(--paper-2);
 [data-theme='blue'] .bs-log pre { background: #0d2744; }
 [data-theme='blue'] .backstage { box-shadow: 0 20px 50px -20px rgba(31, 111, 209, 0.45); border-color: #a9c8ea; }
 
-[data-theme='blue'] .right { background: #e6f1fd; color: #0d2744; border-left: 1px solid #cfe2f7; }
-[data-theme='blue'] .right-head { border-bottom-color: #c5dcf4; }
+[data-theme='blue'] .right { background: #ffffff; color: #0d2744; border-left: 1px solid #d6e6f8; }
+[data-theme='blue'] .right-head { border-bottom: 2px solid #1f6fd1; }
+[data-theme='blue'] .agent-name { color: #1f6fd1; font-weight: 600; }
 [data-theme='blue'] .agent-name::before { color: #7d93ad; }
 [data-theme='blue'] .status { color: #3c5674; }
 [data-theme='blue'] .status-dot { border-color: #7d93ad; }
@@ -345,7 +354,9 @@ button.seat.free:hover { border-color: var(--black); background: var(--paper-2);
 [data-theme='blue'] .t-line.latest .t-who { color: #3c5674; }
 [data-theme='blue'] .t-line.latest .t-text { color: #0d2744; }
 [data-theme='blue'] .typing span { background: #7fb1e8; }
-[data-theme='blue'] .composer { background: #fff; border-color: #c5dcf4; }
+[data-theme='blue'] .composer { background: #fff; border-color: #bcd5f1; }
+[data-theme='blue'] .t-line.agent .t-text { color: #5b7491; }
+[data-theme='blue'] .t-line.latest.agent .t-text { color: #0d2744; }
 [data-theme='blue'] .composer:focus-within { border-color: #1f6fd1; }
 [data-theme='blue'] .composer input { color: #0d2744; }
 [data-theme='blue'] .composer input::placeholder { color: #8fa5bf; }
@@ -355,8 +366,10 @@ button.seat.free:hover { border-color: var(--black); background: var(--paper-2);
 [data-theme='blue'] .icon-btn.round.on { background: #1f6fd1; color: #fff; }
 [data-theme='blue'] .call-btn { background: #1f6fd1; border-color: #1f6fd1; color: #fff; }
 [data-theme='blue'] .call-btn:hover { background: #185db1; }
-[data-theme='blue'] .call-btn.live { background: #0d2744; border-color: #0d2744; color: #fff; }
-[data-theme='blue'] .call-btn.live:hover { background: #163a63; }
+[data-theme='blue'] .call-btn.live { background: #fff; border-color: #1f6fd1; color: #1f6fd1; }
+[data-theme='blue'] .call-btn.live:hover { background: #f5f9fe; }
+[data-theme='blue'] .call-btn.live .wave i { background: #9cc0ea; }
+[data-theme='blue'] .call-btn.live .wave.speaking i { background: #1f6fd1; }
 [data-theme='blue'] .wave i { background: #6f88a6; }
-[data-theme='blue'] .wave.speaking i { background: #fff; }
+[data-theme='blue'] .call-btn:not(.live) .wave.speaking i { background: #fff; }
 [data-theme='blue'] .hint { color: #7d93ad; }

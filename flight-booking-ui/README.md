@@ -92,4 +92,4 @@ The mock data covers these cases (all flights SIN → NRT, Thu 8 Oct 2026):
 
 Seat pricing: rows 1–5 cost €15, exit rows 12–13 cost €25, all other rows are free. Row 30 is blocked. Extra bags cost €45 each, with 1 bag included. **Reset demo** in the dev panel restores the seed data.
 
-The UI has no airline branding. It has two themes: light blue (default) and black-and-white. Switch in the dev panel, with `?theme=mono` in the URL, or set `VITE_THEME=mono` for the build. The agent name is set with `VITE_AGENT_NAME` (default "Mia").
+The UI has no airline branding. It has two themes: white and blue (default) and black-and-white. Switch in the dev panel, with `?theme=mono` in the URL, or set `VITE_THEME=mono` for the build. The agent name is set with `VITE_AGENT_NAME` (default "Mia").
