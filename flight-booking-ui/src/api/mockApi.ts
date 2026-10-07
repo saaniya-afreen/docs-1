@@ -40,7 +40,7 @@ function seatType(row: number, col: string): SeatType {
   return 'middle';
 }
 
-/** Front rows €15, exit rows 12–13 €25, the rest free (matches reference video). */
+/** Front rows €15, exit rows 12–13 €25, the rest free. */
 function seatPrice(row: number): number {
   if (row === 12 || row === 13) return 25;
   if (row <= 5) return 15;

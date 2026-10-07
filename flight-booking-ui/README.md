@@ -1,6 +1,6 @@
 # Flight Booking Voice Agent: UI
 
-Two-panel demo UI for the flight-change voice agent. The left panel shows the booking (trip, flight options, seat map, bags, review, confirmed). The right panel shows the live conversation with the agent (Sara). Layout and flow follow the reference video and the PRD (scenes 1–6: SIN → NRT, NS1142 → NS1156, seat 23C → 6A, +1 bag, €15 refund).
+Two-panel demo UI for the flight-change voice agent. The left panel shows the booking (trip, flight options, seat map, bags, review, confirmed). The right panel shows the live conversation with the agent (Sara). The flow follows the PRD (scenes 1–6: SIN → NRT, NS1142 → NS1156, seat 23C → 6A, +1 bag, €15 refund).
 
 It runs **today with no backend and no SDK**. A mock API (seeded data) and a mock voice agent (typed input, scripted replies) stand in for both. Each one is behind a small interface, so the real pieces plug in without touching the screens.
 
@@ -12,7 +12,7 @@ npm install
 npm run dev          # http://localhost:5173
 ```
 
-Click **Talk to Sara** and type, for example "change my flight", "cheapest", "yes", "window seats?", "6A", "add a bag", "yes", "yes". You can also open **Backstage** and click **Play demo script** to replay the whole video conversation automatically. Backstage also lists every API call with its request and response.
+Click **Start call** and type, for example "change my flight", "cheapest", "yes", "window seats?", "6A", "add a bag", "yes", "yes". You can also open **Dev panel** and click **Play demo script** to replay the whole demo conversation automatically. The dev panel also lists every API call with its request and response.
 
 Every screen also works by clicking (change flight, pick a seat, add a bag, review, confirm). Clicks go through the same code path the agent uses.
 
@@ -73,7 +73,7 @@ src/
   agent/       tools.ts (actions shared by agent + clicks), uiEvents.ts (server-pushed updates)
   voice/       VoiceAdapter interface, mock agent, OneInbox SDK skeleton, session wiring
   state/       tiny global store
-  components/  LeftPanel, views (trip/flights/seats/bags/review/confirmed), SeatMap, ConversationPanel, Backstage
+  components/  LeftPanel, views (trip/flights/seats/bags/review/confirmed), SeatMap, ConversationPanel, Backstage (dev panel)
 ```
 
 ## Mock data / test scenarios
@@ -90,6 +90,6 @@ The mock data covers these cases (all flights SIN → NRT, Thu 8 Oct 2026):
 | NS1134 | 09:40 | +€25 | 100% | Sold out (can't be selected) |
 | NS1120 | 06:50 | +€40 | ~55% full | Early option |
 
-Seat pricing: rows 1–5 cost €15, exit rows 12–13 cost €25, all other rows are free. Row 30 is blocked. Extra bags cost €45 each, with 1 bag included. **Reset demo** in Backstage restores the seed data.
+Seat pricing: rows 1–5 cost €15, exit rows 12–13 cost €25, all other rows are free. Row 30 is blocked. Extra bags cost €45 each, with 1 bag included. **Reset demo** in the dev panel restores the seed data.
 
-Brand and agent name are set with `VITE_BRAND_NAME` and `VITE_AGENT_NAME` (defaults: "SKYLINE AIR", "Sara").
+The UI has no airline branding and uses a black-and-white palette. The agent name is set with `VITE_AGENT_NAME` (default "Sara", from the PRD).

@@ -27,7 +27,7 @@ export interface AppState {
   seats: Seat[];
   seatHighlight: SeatType | null;
   quote: Quote | null;
-  /** Shows the "Sara changed this" hint after an agent-driven update. */
+  /** Shows the "Updated by Sara" hint after an agent-driven update. */
   agentTouched: boolean;
 
   busy: boolean;

@@ -28,10 +28,7 @@ export function LeftPanel() {
   return (
     <main className="left" aria-busy={busy}>
       <header className="topbar">
-        <div className="brand">
-          <span className="brand-mark" aria-hidden="true" />
-          {BRAND.name}
-        </div>
+        <div className="brand">Manage booking</div>
         <div className="who">
           {booking && (
             <div className="who-text">
@@ -40,12 +37,12 @@ export function LeftPanel() {
             </div>
           )}
           <button className="pill" onClick={() => setState((s) => ({ backstageOpen: !s.backstageOpen }))}>
-            Backstage
+            Dev panel
           </button>
         </div>
       </header>
       <div className={`agent-hint ${agentTouched && view !== 'trip' ? 'show' : ''}`}>
-        <SparkIcon /> {BRAND.agentName} changed this
+        <SparkIcon /> Updated by {BRAND.agentName}
       </div>
 
       {isStep && <RouteCompact />}
@@ -87,7 +84,7 @@ export function LeftPanel() {
           </button>
         )}
       </footer>
-      <div className="fineprint">Synthetic demo data</div>
+      <div className="fineprint">Demo data</div>
     </main>
   );
 }

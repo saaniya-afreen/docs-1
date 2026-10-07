@@ -48,7 +48,7 @@ export function ConversationPanel() {
       <div className="transcript" ref={scroller} aria-live="polite">
         {!transcript.length && (
           <div className="t-empty">
-            {status === 'connecting' ? 'Connecting you to ' + BRAND.agentName + '…' : `Talk to ${BRAND.agentName} to change your flight, seat or bags.`}
+            {status === 'connecting' ? 'Connecting you to ' + BRAND.agentName + '…' : `Start a call and ask ${BRAND.agentName} to change your flight, seat or bags.`}
           </div>
         )}
         {transcript.map((l, i) => (
@@ -87,15 +87,15 @@ export function ConversationPanel() {
           <button className="call-btn live" onClick={() => endCall()}>
             <MicIcon />
             <Wave active={status === 'speaking' || status === 'listening'} speaking={status === 'speaking'} />
-            <span>Live · end</span>
+            <span>End call</span>
           </button>
         ) : (
           <button className="call-btn" onClick={() => startCall()}>
-            <MicIcon /> <span>{status === 'ended' ? `Call ${BRAND.agentName} again` : `Talk to ${BRAND.agentName}`}</span>
+            <MicIcon /> <span>{status === 'ended' ? 'Call again' : 'Start call'}</span>
           </button>
         )}
       </div>
-      <p className="hint">Change a flight, seat or bags — just say it.</p>
+      <p className="hint">Voice or text · changes stay pending until you confirm</p>
     </aside>
   );
 }

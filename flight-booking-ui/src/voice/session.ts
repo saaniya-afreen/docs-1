@@ -45,7 +45,7 @@ export function notifyUi(action: UiAction) {
   adapter.notifyUiAction(action);
 }
 
-/** Mock only: plays the customer side of the reference video. */
+/** Mock only: plays the customer side of the demo conversation. */
 export async function playDemo() {
   stopDemo();
   await startCall();

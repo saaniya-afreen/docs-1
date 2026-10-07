@@ -16,7 +16,7 @@ export function onApiLog(fn: Listener) {
 }
 
 let seq = 0;
-/** Wraps every call so the Backstage panel can show the HTTP traffic. */
+/** Wraps every call so the dev panel can show the HTTP traffic. */
 function withLogging(api: BookingApi): BookingApi {
   const wrapped = {} as BookingApi;
   for (const name of Object.keys(api) as (keyof BookingApi)[]) {

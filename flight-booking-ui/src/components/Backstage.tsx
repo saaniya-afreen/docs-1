@@ -11,9 +11,9 @@ export function Backstage() {
   if (!open) return null;
 
   return (
-    <div className="backstage" role="dialog" aria-label="Backstage">
+    <div className="backstage" role="dialog" aria-label="Dev panel">
       <header>
-        <strong>Backstage</strong>
+        <strong>Dev panel</strong>
         <button className="link small" onClick={() => setState({ backstageOpen: false })}>
           Close
         </button>
