@@ -239,14 +239,14 @@
 <script>
 (() => {
   const WIDGET_SRC = "https://oneinbox-v2-widget.vercel.app/loader.js";
-  const K_SCEN = "rpt.scenarios.v1", K_HIST = "rpt.history.v1";
+  const K_SCEN = "rpt.scenarios.v2", K_HIST = "rpt.history.v1";
 
-  const SEED = [{
-    id: "seed-1", name: "Tanaka Hiroshi", phone: "090-1234-5678", project: "Washing machine support",
-    type: "inbound",
-    brief: "Goal: confirm customer details, identify the error, and book a technician visit.",
-    widget: "xku7wrqgh3"
-  }];
+  const SEED = [
+    { id: "inbound-agent", name: "Inbound Customer", phone: "090-1234-5678", project: "Inbound role-play",
+      type: "inbound", brief: "", widget: "n6w4jfcdje" },
+    { id: "outbound-agent", name: "Outbound Customer", phone: "080-9876-5432", project: "Outbound role-play",
+      type: "outbound", brief: "", widget: "braj8s3quq" }
+  ];
 
   // ---------- storage (safe) ----------
   const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
