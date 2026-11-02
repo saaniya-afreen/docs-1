@@ -1,0 +1,617 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Call Role-Play Trainer</title>
+<style>
+  :root {
+    --bg: #f5f7fb; --panel: #ffffff; --text: #0f172a; --muted: #64748b; --line: #e2e8f0;
+    --primary: #2563eb; --primary-d: #1d4ed8; --green: #16a34a; --red: #dc2626; --amber: #d97706;
+    --soft: #eff6ff; --radius: 12px;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #0b1120; --panel: #111827; --text: #e5e7eb; --muted: #94a3b8; --line: #1f2937; --soft: #172554;
+    }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; font: 14px/1.5 system-ui, -apple-system, "Segoe UI", "Hiragino Sans", "Noto Sans JP", sans-serif; background: var(--bg); color: var(--text); }
+  header { display: flex; align-items: center; gap: 16px; padding: 12px 20px; background: var(--panel); border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  header h1 { font-size: 16px; margin: 0; margin-right: auto; }
+  nav button { background: none; border: 0; padding: 8px 12px; border-radius: 8px; color: var(--muted); font: inherit; cursor: pointer; }
+  nav button.active { background: var(--soft); color: var(--primary); font-weight: 600; }
+  main { max-width: 1200px; margin: 0 auto; padding: 20px 16px; }
+  .card { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 16px; }
+  .grid { display: grid; gap: 12px; grid-template-columns: repeat(auto-fill, minmax(260px, 1fr)); }
+  .row { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .between { justify-content: space-between; }
+  h2 { font-size: 18px; margin: 0 0 12px; }
+  h3 { font-size: 15px; margin: 0 0 8px; }
+  .muted { color: var(--muted); }
+  .tag { display: inline-block; padding: 2px 8px; border-radius: 999px; font-size: 12px; background: var(--soft); color: var(--primary); }
+  .tag.out { background: #fef3c7; color: #92400e; }
+  .btn { border: 1px solid var(--line); background: var(--panel); color: var(--text); padding: 8px 14px; border-radius: 8px; font: inherit; cursor: pointer; }
+  .btn:hover { border-color: var(--primary); }
+  .btn.primary { background: var(--primary); border-color: var(--primary); color: #fff; }
+  .btn.primary:hover { background: var(--primary-d); }
+  .btn.green { background: var(--green); border-color: var(--green); color: #fff; }
+  .btn.red { background: var(--red); border-color: var(--red); color: #fff; }
+  .btn.small { padding: 4px 10px; font-size: 13px; }
+  label { display: block; font-size: 12px; color: var(--muted); margin-bottom: 4px; }
+  input, select, textarea { width: 100%; padding: 8px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--panel); color: var(--text); font: inherit; }
+  textarea { resize: vertical; min-height: 70px; }
+  .form { display: grid; gap: 12px; grid-template-columns: 1fr 1fr; }
+  .form .full { grid-column: 1 / -1; }
+  .hidden { display: none !important; }
+  .empty { text-align: center; padding: 40px; color: var(--muted); }
+
+  /* Ringing overlay */
+  .overlay { position: fixed; inset: 0; background: rgba(15, 23, 42, .75); display: flex; align-items: center; justify-content: center; z-index: 50; padding: 16px; }
+  .phone { background: var(--panel); border-radius: 24px; padding: 32px 28px; width: 320px; max-width: 100%; text-align: center; }
+  .avatar { width: 88px; height: 88px; border-radius: 50%; background: var(--soft); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 34px; font-weight: 700; margin: 0 auto 16px; }
+  .ringing .avatar { animation: pulse 1.2s infinite; }
+  @keyframes pulse { 0% { box-shadow: 0 0 0 0 rgba(37, 99, 235, .6); } 70% { box-shadow: 0 0 0 22px rgba(37, 99, 235, 0); } 100% { box-shadow: 0 0 0 0 rgba(37, 99, 235, 0); } }
+  .phone .num { font-size: 20px; font-weight: 600; }
+  .phone .actions { display: flex; justify-content: center; gap: 28px; margin-top: 24px; }
+  .round { width: 64px; height: 64px; border-radius: 50%; border: 0; color: #fff; font-size: 26px; cursor: pointer; }
+
+  /* In call */
+  .call { display: grid; grid-template-columns: 1.3fr 1fr; gap: 16px; }
+  .widget-frame { width: 100%; height: 620px; border: 1px solid var(--line); border-radius: var(--radius); background: #fff; }
+  .timer { font-variant-numeric: tabular-nums; font-size: 22px; font-weight: 700; }
+  .live { display: inline-flex; align-items: center; gap: 6px; color: var(--red); font-weight: 600; font-size: 12px; }
+  .live::before { content: ""; width: 8px; height: 8px; border-radius: 50%; background: var(--red); animation: blink 1s infinite; }
+  @keyframes blink { 50% { opacity: .2; } }
+  #callNotes { min-height: 300px; }
+  .info dl { display: grid; grid-template-columns: auto 1fr; gap: 4px 12px; margin: 0; }
+  .info dt { color: var(--muted); }
+  .info dd { margin: 0; }
+
+  .todo { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-bottom: 1px solid var(--line); }
+  .todo input[type=checkbox] { width: auto; }
+  .todo span { flex: 1; }
+  .todo.done span { text-decoration: line-through; color: var(--muted); }
+
+  .hist { display: flex; justify-content: space-between; align-items: center; gap: 12px; padding: 12px 0; border-bottom: 1px solid var(--line); flex-wrap: wrap; }
+  pre.view { white-space: pre-wrap; background: var(--bg); padding: 12px; border-radius: 8px; font: inherit; }
+  .toast { position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%); background: var(--text); color: var(--bg); padding: 8px 16px; border-radius: 8px; z-index: 60; }
+
+  @media (max-width: 800px) {
+    .call, .form { grid-template-columns: 1fr; }
+    .widget-frame { height: 520px; }
+  }
+</style>
+</head>
+<body>
+<header>
+  <h1>📞 Call Role-Play Trainer</h1>
+  <nav>
+    <button data-view="practice" class="active">Practice</button>
+    <button data-view="scenarios">Customers</button>
+    <button data-view="history">History</button>
+  </nav>
+</header>
+
+<main>
+  <!-- PRACTICE -->
+  <section id="view-practice">
+    <div class="row between" style="margin-bottom:12px">
+      <h2 style="margin:0">Choose a role-play</h2>
+      <div class="row">
+        <select id="filterProject" style="width:auto"></select>
+        <select id="filterType" style="width:auto">
+          <option value="">Inbound &amp; outbound</option>
+          <option value="inbound">Inbound only</option>
+          <option value="outbound">Outbound only</option>
+        </select>
+      </div>
+    </div>
+    <div id="practiceList" class="grid"></div>
+  </section>
+
+  <!-- IN CALL -->
+  <section id="view-call" class="hidden">
+    <div class="call">
+      <div>
+        <div class="row between" style="margin-bottom:8px">
+          <span class="live">LIVE CALL</span>
+          <span class="muted" id="widgetHint">Live transcript appears in the widget below. If it shows a start button, press it to connect.</span>
+        </div>
+        <div id="widgetHost"></div>
+      </div>
+      <div style="display:grid; gap:16px; align-content:start">
+        <div class="card info">
+          <div class="row between">
+            <h3 id="callTitle" style="margin:0">Caller</h3>
+            <span class="timer" id="timer">00:00</span>
+          </div>
+          <dl id="callInfo" style="margin-top:10px"></dl>
+        </div>
+        <div class="card">
+          <h3>Call notes</h3>
+          <textarea id="callNotes" placeholder="Take notes while you talk: name, issue, order no., what they want…"></textarea>
+        </div>
+        <button class="btn red" id="endCall" style="padding:12px">⏹ End call</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- AFTER CALL WORK -->
+  <section id="view-acw" class="hidden">
+    <div class="card">
+      <div class="row between">
+        <h2 style="margin:0">After-call work (ACW)</h2>
+        <span class="muted" id="acwMeta"></span>
+      </div>
+      <div class="form" style="margin-top:16px">
+        <div class="full"><label>Call summary</label><textarea id="acwSummary" placeholder="What happened on the call?"></textarea></div>
+        <div class="full"><label>What the customer wants</label><textarea id="acwRequest" placeholder="Customer's request / need"></textarea></div>
+        <div>
+          <label>Outcome</label>
+          <select id="acwOutcome">
+            <option>Resolved</option>
+            <option>Follow-up needed</option>
+            <option>Escalated</option>
+            <option>Appointment / next step set</option>
+            <option>Sale / contract agreed</option>
+            <option>Not interested</option>
+            <option>Call back later</option>
+            <option>Customer hung up</option>
+          </select>
+        </div>
+        <div>
+          <label>Add to-do</label>
+          <div class="row" style="flex-wrap:nowrap">
+            <input id="todoInput" placeholder="e.g. Send quote by email">
+            <button class="btn" id="todoAdd">Add</button>
+          </div>
+        </div>
+        <div class="full"><label>To-do list</label><div id="todoList"></div></div>
+        <div class="full"><label>Notes taken during the call (editable)</label><textarea id="acwNotes" style="min-height:120px"></textarea></div>
+      </div>
+      <div class="row" style="margin-top:16px; justify-content:flex-end">
+        <button class="btn" id="acwDiscard">Discard</button>
+        <button class="btn primary" id="acwSave">Save &amp; finish</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- SCENARIOS / CUSTOMERS -->
+  <section id="view-scenarios" class="hidden">
+    <div class="row between" style="margin-bottom:12px">
+      <h2 style="margin:0">AI customers</h2>
+      <div class="row">
+        <button class="btn" id="exportScen">Export</button>
+        <label class="btn" style="margin:0; color:var(--text); font-size:14px">Import<input type="file" id="importScen" accept=".json" class="hidden"></label>
+        <button class="btn primary" id="newScen">+ New customer</button>
+      </div>
+    </div>
+    <p class="muted" style="margin-top:0">Each customer is one OneInbox agent. Fill in the persona, click <b>Copy agent prompt</b>, paste it into a new agent in OneInbox, then paste that agent's widget <b>public-id</b> here.</p>
+    <div id="scenList" class="grid"></div>
+
+    <div id="scenForm" class="card hidden" style="margin-top:16px">
+      <h3 id="scenFormTitle">New customer</h3>
+      <div class="form">
+        <div><label>Customer name</label><input id="f_name" placeholder="e.g. Tanaka Hiroshi"></div>
+        <div><label>Phone number (shown as caller ID)</label><input id="f_phone" placeholder="090-1234-5678"></div>
+        <div><label>Project / client</label><input id="f_project" placeholder="e.g. Washing machine support"></div>
+        <div><label>Call type</label>
+          <select id="f_type"><option value="inbound">Inbound (customer calls us)</option><option value="outbound">Outbound (we call the customer)</option></select></div>
+        <div><label>Gender</label><select id="f_gender"><option>Male</option><option>Female</option><option>Other</option></select></div>
+        <div><label>Age</label><input id="f_age" placeholder="e.g. 45"></div>
+        <div><label>Mood</label><input id="f_mood" placeholder="e.g. Annoyed, in a hurry"></div>
+        <div><label>Difficulty</label><select id="f_difficulty"><option>Easy</option><option selected>Medium</option><option>Hard</option></select></div>
+        <div><label>Speaking style</label><input id="f_style" placeholder="e.g. Casual, short answers, a bit vague"></div>
+        <div><label>Language</label><input id="f_language" placeholder="Japanese" value="Japanese"></div>
+        <div class="full"><label>Reason for call / situation</label><textarea id="f_reason" placeholder="e.g. Bought a washing machine 2 weeks ago, it shows error E21 and won't drain."></textarea></div>
+        <div class="full"><label>Objections / pushback</label><textarea id="f_objections" placeholder="e.g. Doesn't want to pay for a repair visit; wants a replacement."></textarea></div>
+        <div class="full"><label>Trainer notes (only shown before the call, optional)</label><textarea id="f_brief" placeholder="Goal for the trainee, script to follow, etc."></textarea></div>
+        <div class="full"><label>OneInbox widget public-id</label><input id="f_widget" placeholder="e.g. xku7wrqgh3"></div>
+      </div>
+      <div class="row" style="margin-top:16px; justify-content:flex-end">
+        <button class="btn" id="copyPrompt">📋 Copy agent prompt</button>
+        <button class="btn" id="scenCancel">Cancel</button>
+        <button class="btn primary" id="scenSave">Save customer</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- HISTORY -->
+  <section id="view-history" class="hidden">
+    <div class="row between" style="margin-bottom:12px">
+      <h2 style="margin:0">Practice history</h2>
+      <button class="btn" id="exportHist">Export</button>
+    </div>
+    <div class="card"><div id="histList"></div></div>
+    <div id="histView" class="card hidden" style="margin-top:16px">
+      <div class="row between"><h3 style="margin:0" id="histViewTitle"></h3>
+        <div class="row"><button class="btn small" id="histCopy">Copy</button><button class="btn small" id="histClose">Close</button></div></div>
+      <pre class="view" id="histViewBody"></pre>
+    </div>
+  </section>
+</main>
+
+<!-- Phone overlay (ringing inbound / dialing outbound / pre-call brief) -->
+<div id="phone" class="overlay hidden">
+  <div class="phone">
+    <div class="avatar" id="phAvatar">?</div>
+    <div class="muted" id="phLabel">Incoming call</div>
+    <div class="num" id="phName"></div>
+    <div class="muted" id="phNum"></div>
+    <div class="muted" id="phProject" style="margin-top:6px"></div>
+    <div id="phBrief" class="muted" style="margin-top:12px; text-align:left; white-space:pre-wrap"></div>
+    <div class="actions" id="phActions"></div>
+  </div>
+</div>
+
+<script>
+(() => {
+  const WIDGET_SRC = "https://oneinbox-v2-widget.vercel.app/loader.js";
+  const K_SCEN = "rpt.scenarios.v1", K_HIST = "rpt.history.v1";
+
+  const PROMPTS = {
+    inbound: `You are {{customer_name}}, a real customer — NOT an assistant, NOT an agent, NOT an AI.
+You are calling a support / sales line for {{project}}. The person who answers is a call-center operator in training. Behave exactly like a real caller so they can practise.
+
+## Who you are
+- Name: {{customer_name}}
+- Gender: {{gender}}
+- Age: {{age}}
+- Speaking style: {{speaking_style}}
+- Current mood: {{mood}}
+
+## Why you are calling
+{{call_reason}}
+
+## Things you may push back on / objections
+{{objections}}
+
+## Difficulty: {{difficulty}}
+- Easy: cooperative, answers questions clearly.
+- Medium: a little impatient, gives information only when asked.
+- Hard: frustrated, interrupts, vague, needs the operator to take control.
+
+## How to speak
+- Talk like a normal person on the phone: short sentences, casual words ("hi", "um", "yeah", "okay").
+- Open the call casually, e.g. "Hi, um, I have a problem with ..." — never a formal script.
+- NEVER say operator phrases: "Thank you for calling", "How may I help you", "Is there anything else I can help with".
+- NEVER offer help, explain solutions, or solve your own problem. You are the one who needs help.
+- Do not give all details at once. Answer what the operator asks; let them lead.
+- If asked for name, phone, address, order/contract number, invent plausible details and stay consistent.
+- React realistically: if the operator is unclear, ask "Sorry, what do you mean?"; if slow, sound a bit impatient.
+- Never mention that you are an AI, a role-play, or training. Stay in character no matter what.
+- Speak in {{language}}.
+
+## Ending the call
+When your issue is resolved or a clear next step is agreed, thank them casually ("Okay, great, thanks. Bye.") and end the call. If the operator is rude or unhelpful for a long time, say you'll call back later and hang up.`,
+    outbound: `You are {{customer_name}}, a real person — NOT an assistant, NOT an agent, NOT an AI.
+You are receiving a phone call from a company about {{project}}. The caller is a sales / call-center operator in training. You did not expect this call. Behave exactly like a real person picking up the phone.
+
+## Who you are
+- Name: {{customer_name}}
+- Gender: {{gender}}
+- Age: {{age}}
+- Speaking style: {{speaking_style}}
+- Current mood: {{mood}}
+
+## Your situation
+{{call_reason}}
+
+## Objections you raise
+{{objections}}
+
+## Difficulty: {{difficulty}}
+- Easy: open to listening, interested if the offer makes sense.
+- Medium: busy and a bit skeptical; needs a clear reason to keep talking.
+- Hard: suspicious of sales calls, tries to end the call early, many objections.
+
+## How to speak
+- Pick up casually: "Hello?" or "Yes, hello?" — then wait for the caller to introduce themselves.
+- Short, natural replies ("uh-huh", "okay", "hmm, I'm not sure"). No formal phrases.
+- NEVER act like the company: do not say "Thank you for calling" or "How can I help you".
+- Do not make the sale easy. Ask natural questions: "Who is this?", "How did you get my number?", "How much is it?", "Can you send me something?"
+- Only agree to the next step if the operator handles your objections well.
+- Invent consistent personal details if asked.
+- Never mention that you are an AI, a role-play, or training. Stay in character.
+- Speak in {{language}}.
+
+## Ending the call
+End naturally: agree to a next step ("Okay, send me the details"), decline politely ("I'm not interested, thanks"), or say you're busy and hang up — depending on how well the operator did.`
+  };
+
+  const SEED = [{
+    id: "seed-1", name: "Tanaka Hiroshi", phone: "090-1234-5678", project: "Washing machine support",
+    type: "inbound", gender: "Male", age: "52", mood: "Annoyed, in a hurry", difficulty: "Medium",
+    style: "Casual, short answers", language: "Japanese",
+    reason: "Bought a washing machine 2 weeks ago. It shows error E21 and won't drain.",
+    objections: "Doesn't want to pay for a repair visit; asks for a replacement.",
+    brief: "Goal: confirm customer details, identify the error, and book a technician visit.",
+    widget: "xku7wrqgh3"
+  }];
+
+  // ---------- storage (safe) ----------
+  const load = (k, d) => { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch { return d; } };
+  const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch {} };
+  let scenarios = load(K_SCEN, null) || SEED;
+  let history = load(K_HIST, []);
+
+  const $ = s => document.querySelector(s);
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  const uid = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 7);
+  const fmt = s => `${String(Math.floor(s / 60)).padStart(2, "0")}:${String(s % 60).padStart(2, "0")}`;
+  const toast = msg => { const t = document.createElement("div"); t.className = "toast"; t.textContent = msg; document.body.appendChild(t); setTimeout(() => t.remove(), 1800); };
+  const copy = async text => { try { await navigator.clipboard.writeText(text); toast("Copied"); } catch { prompt("Copy:", text); } };
+  const download = (name, data) => { const a = document.createElement("a"); a.href = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" })); a.download = name; a.click(); };
+
+  // ---------- navigation ----------
+  let inCall = false;
+  function show(view) {
+    ["practice", "call", "acw", "scenarios", "history"].forEach(v => $("#view-" + v).classList.toggle("hidden", v !== view));
+    document.querySelectorAll("nav button").forEach(b => b.classList.toggle("active", b.dataset.view === view));
+    if (view === "practice") renderPractice();
+    if (view === "scenarios") renderScenarios();
+    if (view === "history") renderHistory();
+  }
+  document.querySelectorAll("nav button").forEach(b => b.onclick = () => {
+    if (inCall && !confirm("A call is in progress. Leave and end it?")) return;
+    if (inCall) teardownCall();
+    show(b.dataset.view);
+  });
+
+  // ---------- practice list ----------
+  function renderPractice() {
+    const projects = [...new Set(scenarios.map(s => s.project).filter(Boolean))];
+    const fp = $("#filterProject"), cur = fp.value;
+    fp.innerHTML = `<option value="">All projects</option>` + projects.map(p => `<option ${p === cur ? "selected" : ""}>${esc(p)}</option>`).join("");
+    const ft = $("#filterType").value;
+    const list = scenarios.filter(s => (!fp.value || s.project === fp.value) && (!ft || s.type === ft));
+    $("#practiceList").innerHTML = list.length ? list.map(s => `
+      <div class="card">
+        <div class="row between"><span class="tag ${s.type === "outbound" ? "out" : ""}">${s.type === "outbound" ? "↗ Outbound" : "↙ Inbound"}</span><span class="muted">${esc(s.difficulty)}</span></div>
+        <h3 style="margin-top:10px">${esc(s.project || "Untitled project")}</h3>
+        <div class="muted">${esc(s.name)} · ${esc(s.gender)}${s.age ? ", " + esc(s.age) : ""}</div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn primary" data-start="${esc(s.id)}" ${s.widget ? "" : "disabled title='Add a widget public-id first'"}>${s.type === "outbound" ? "📞 Start outbound call" : "🔔 Start inbound call"}</button>
+        </div>
+        ${s.widget ? "" : `<div class="muted" style="margin-top:6px">⚠ No widget public-id yet</div>`}
+      </div>`).join("") : `<div class="empty card">No customers yet. Create one in <b>Customers</b>.</div>`;
+    document.querySelectorAll("[data-start]").forEach(b => b.onclick = () => startFlow(scenarios.find(s => s.id === b.dataset.start)));
+  }
+  $("#filterProject").onchange = renderPractice;
+  $("#filterType").onchange = renderPractice;
+
+  // ---------- ringtone (Web Audio, no file needed) ----------
+  let ringCtx = null, ringTimer = null;
+  function ring(on) {
+    if (!on) { clearInterval(ringTimer); ringTimer = null; if (ringCtx) { ringCtx.close().catch(() => {}); ringCtx = null; } return; }
+    try {
+      ringCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const burst = () => {
+        if (!ringCtx) return;
+        [0, 0.5].forEach(off => {
+          const o = ringCtx.createOscillator(), g = ringCtx.createGain(), t = ringCtx.currentTime + off;
+          o.frequency.value = 440; o.connect(g); g.connect(ringCtx.destination);
+          g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(0.2, t + 0.02);
+          g.gain.setValueAtTime(0.2, t + 0.38); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
+          o.start(t); o.stop(t + 0.42);
+        });
+      };
+      burst(); ringTimer = setInterval(burst, 2500);
+    } catch {}
+  }
+
+  // ---------- call flow ----------
+  let current = null, timerId = null, startedAt = 0, ringTimeout = null;
+  const initials = n => (n || "?").trim().split(/\s+/).map(w => w[0]).slice(0, 2).join("").toUpperCase();
+
+  function phone({ label, ringing, actions }) {
+    const s = current.scenario;
+    $("#phone").classList.remove("hidden");
+    $("#phone").classList.toggle("ringing", !!ringing);
+    $("#phAvatar").textContent = initials(s.name);
+    $("#phLabel").textContent = label;
+    $("#phName").textContent = s.name;
+    $("#phNum").textContent = s.phone || "Unknown number";
+    $("#phProject").textContent = s.project || "";
+    $("#phBrief").textContent = s.brief && !ringing ? "📝 " + s.brief : "";
+    $("#phActions").innerHTML = "";
+    actions.forEach(a => { const b = document.createElement("button"); b.className = a.cls; b.innerHTML = a.html; b.title = a.title || ""; b.onclick = a.fn; $("#phActions").appendChild(b); });
+  }
+  const hidePhone = () => { $("#phone").classList.add("hidden"); ring(false); clearTimeout(ringTimeout); };
+
+  function startFlow(s) {
+    current = { scenario: s };
+    if (s.type === "outbound") {
+      phone({ label: "Outbound call", actions: [
+        { cls: "btn", html: "Cancel", fn: () => { hidePhone(); current = null; } },
+        { cls: "btn green", html: "📞 Dial", fn: () => {
+            phone({ label: "Calling…", ringing: true, actions: [{ cls: "round", html: "✕", title: "Cancel", fn: () => { hidePhone(); current = null; } }] });
+            $("#phActions .round").style.background = "var(--red)";
+            ring(true); ringTimeout = setTimeout(() => { hidePhone(); connect(); }, 4000);
+          } }
+      ] });
+    } else {
+      // Brief first (if any), then a short delay before the phone rings, like real life.
+      const doRing = () => {
+        phone({ label: "Incoming call…", ringing: true, actions: [
+          { cls: "round", html: "✕", title: "Decline", fn: () => { hidePhone(); current = null; toast("Call declined"); } },
+          { cls: "round", html: "✆", title: "Accept", fn: () => { hidePhone(); connect(); } }
+        ] });
+        const [dec, acc] = document.querySelectorAll("#phActions .round");
+        dec.style.background = "var(--red)"; acc.style.background = "var(--green)";
+        ring(true);
+      };
+      if (s.brief) phone({ label: "Get ready", actions: [
+        { cls: "btn", html: "Cancel", fn: () => { hidePhone(); current = null; } },
+        { cls: "btn primary", html: "I'm ready", fn: () => { hidePhone(); setTimeout(doRing, 1500); } }
+      ] });
+      else doRing();
+    }
+  }
+
+  function widgetDoc(id) {
+    // Each call gets a fresh, isolated widget. Removing the frame ends the session and releases the mic.
+    return `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<style>html,body{margin:0;height:100%;font-family:system-ui,sans-serif;background:#fff}</style></head>
+<body><oneinbox-widget public-id="${esc(id)}"></oneinbox-widget>
+<script src="${WIDGET_SRC}" async><\/script></body></html>`;
+  }
+
+  function connect() {
+    const s = current.scenario;
+    inCall = true;
+    current.startedAt = new Date().toISOString();
+    $("#callTitle").textContent = (s.type === "outbound" ? "↗ Calling " : "↙ ") + s.name;
+    $("#callInfo").innerHTML = [["Phone", s.phone], ["Project", s.project], ["Type", s.type === "outbound" ? "Outbound" : "Inbound"]]
+      .map(([k, v]) => `<dt>${k}</dt><dd>${esc(v || "—")}</dd>`).join("");
+    $("#callNotes").value = "";
+    const f = document.createElement("iframe");
+    f.className = "widget-frame";
+    f.setAttribute("allow", "microphone; autoplay; clipboard-write");
+    f.srcdoc = widgetDoc(s.widget);
+    $("#widgetHost").innerHTML = ""; $("#widgetHost").appendChild(f);
+    startedAt = Date.now(); $("#timer").textContent = "00:00";
+    timerId = setInterval(() => $("#timer").textContent = fmt(Math.floor((Date.now() - startedAt) / 1000)), 1000);
+    show("call");
+  }
+
+  function teardownCall() {
+    clearInterval(timerId); timerId = null;
+    $("#widgetHost").innerHTML = "";
+    inCall = false;
+  }
+
+  $("#endCall").onclick = () => {
+    current.duration = Math.floor((Date.now() - startedAt) / 1000);
+    current.callNotes = $("#callNotes").value;
+    teardownCall();
+    openACW();
+  };
+
+  // ---------- ACW ----------
+  let todos = [];
+  function openACW() {
+    const s = current.scenario;
+    $("#acwMeta").textContent = `${s.name} · ${s.project} · ${fmt(current.duration)}`;
+    $("#acwSummary").value = ""; $("#acwRequest").value = ""; $("#acwNotes").value = current.callNotes || "";
+    $("#acwOutcome").selectedIndex = 0; todos = []; renderTodos();
+    show("acw");
+  }
+  function renderTodos() {
+    $("#todoList").innerHTML = todos.length ? todos.map((t, i) => `
+      <div class="todo ${t.done ? "done" : ""}"><input type="checkbox" data-i="${i}" ${t.done ? "checked" : ""}><span>${esc(t.text)}</span><button class="btn small" data-del="${i}">✕</button></div>`).join("")
+      : `<div class="muted">No to-dos yet.</div>`;
+    document.querySelectorAll("#todoList [data-i]").forEach(c => c.onchange = () => { todos[c.dataset.i].done = c.checked; renderTodos(); });
+    document.querySelectorAll("#todoList [data-del]").forEach(b => b.onclick = () => { todos.splice(b.dataset.del, 1); renderTodos(); });
+  }
+  const addTodo = () => { const v = $("#todoInput").value.trim(); if (!v) return; todos.push({ text: v, done: false }); $("#todoInput").value = ""; renderTodos(); };
+  $("#todoAdd").onclick = addTodo;
+  $("#todoInput").onkeydown = e => { if (e.key === "Enter") addTodo(); };
+  $("#acwDiscard").onclick = () => { if (confirm("Discard this call's notes?")) { current = null; show("practice"); } };
+  $("#acwSave").onclick = () => {
+    const s = current.scenario;
+    history.unshift({
+      id: uid(), at: current.startedAt, duration: current.duration,
+      scenario: { name: s.name, phone: s.phone, project: s.project, type: s.type },
+      summary: $("#acwSummary").value, request: $("#acwRequest").value,
+      outcome: $("#acwOutcome").value, todos: todos.slice(), notes: $("#acwNotes").value
+    });
+    save(K_HIST, history); current = null; toast("Saved"); show("history");
+  };
+
+  // ---------- scenarios ----------
+  let editing = null;
+  const F = ["name", "phone", "project", "type", "gender", "age", "mood", "difficulty", "style", "language", "reason", "objections", "brief", "widget"];
+  function renderScenarios() {
+    $("#scenList").innerHTML = scenarios.length ? scenarios.map(s => `
+      <div class="card">
+        <div class="row between"><span class="tag ${s.type === "outbound" ? "out" : ""}">${s.type === "outbound" ? "Outbound" : "Inbound"}</span><code class="muted">${esc(s.widget || "no widget")}</code></div>
+        <h3 style="margin-top:10px">${esc(s.name)}</h3>
+        <div class="muted">${esc(s.project)} · ${esc(s.gender)}${s.age ? ", " + esc(s.age) : ""} · ${esc(s.difficulty)}</div>
+        <div class="row" style="margin-top:12px">
+          <button class="btn small" data-edit="${esc(s.id)}">Edit</button>
+          <button class="btn small" data-dup="${esc(s.id)}">Duplicate</button>
+          <button class="btn small" data-prompt="${esc(s.id)}">Copy prompt</button>
+          <button class="btn small" data-delscen="${esc(s.id)}">Delete</button>
+        </div>
+      </div>`).join("") : `<div class="empty card">No customers yet.</div>`;
+    const by = id => scenarios.find(s => s.id === id);
+    document.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => openForm(by(b.dataset.edit)));
+    document.querySelectorAll("[data-dup]").forEach(b => b.onclick = () => openForm({ ...by(b.dataset.dup), id: null, name: by(b.dataset.dup).name + " (copy)" }));
+    document.querySelectorAll("[data-prompt]").forEach(b => b.onclick = () => copy(buildPrompt(by(b.dataset.prompt))));
+    document.querySelectorAll("[data-delscen]").forEach(b => b.onclick = () => {
+      if (!confirm("Delete this customer?")) return;
+      scenarios = scenarios.filter(s => s.id !== b.dataset.delscen); save(K_SCEN, scenarios); renderScenarios();
+    });
+  }
+  function openForm(s) {
+    editing = s && s.id ? s.id : null;
+    $("#scenFormTitle").textContent = editing ? "Edit customer" : "New customer";
+    F.forEach(k => { const el = $("#f_" + k); el.value = s ? (s[k] ?? "") : (k === "language" ? "Japanese" : k === "difficulty" ? "Medium" : el.tagName === "SELECT" ? el.options[0].value : ""); });
+    $("#scenForm").classList.remove("hidden");
+    $("#scenForm").scrollIntoView({ behavior: "smooth" });
+  }
+  const readForm = () => Object.fromEntries(F.map(k => [k, $("#f_" + k).value.trim()]));
+  function buildPrompt(s) {
+    const map = { customer_name: s.name, project: s.project, gender: s.gender, age: s.age, mood: s.mood, difficulty: s.difficulty,
+      speaking_style: s.style || "Casual and natural", language: s.language || "Japanese", call_reason: s.reason, objections: s.objections || "None in particular." };
+    return PROMPTS[s.type === "outbound" ? "outbound" : "inbound"].replace(/\{\{(\w+)\}\}/g, (_, k) => map[k] || "(not specified)");
+  }
+  $("#newScen").onclick = () => openForm(null);
+  $("#scenCancel").onclick = () => $("#scenForm").classList.add("hidden");
+  $("#copyPrompt").onclick = () => copy(buildPrompt(readForm()));
+  $("#scenSave").onclick = () => {
+    const d = readForm();
+    if (!d.name || !d.project) return toast("Name and project are required");
+    d.widget = d.widget.replace(/.*public-id=["']?([^"'\s>]+).*/s, "$1"); // accept a pasted embed snippet too
+    if (editing) scenarios = scenarios.map(s => s.id === editing ? { ...s, ...d } : s);
+    else scenarios.push({ id: uid(), ...d });
+    save(K_SCEN, scenarios); $("#scenForm").classList.add("hidden"); renderScenarios(); toast("Customer saved");
+  };
+  $("#exportScen").onclick = () => download("roleplay-customers.json", scenarios);
+  $("#importScen").onchange = e => {
+    const file = e.target.files[0]; if (!file) return;
+    file.text().then(t => {
+      const data = JSON.parse(t); if (!Array.isArray(data)) throw 0;
+      const ids = new Set(scenarios.map(s => s.id));
+      data.forEach(s => scenarios.push({ ...s, id: s.id && !ids.has(s.id) ? s.id : uid() }));
+      save(K_SCEN, scenarios); renderScenarios(); toast(`Imported ${data.length}`);
+    }).catch(() => toast("Invalid file")).finally(() => e.target.value = "");
+  };
+
+  // ---------- history ----------
+  const histText = h => [
+    `${h.scenario.type === "outbound" ? "Outbound" : "Inbound"} call — ${h.scenario.name} (${h.scenario.phone || "-"})`,
+    `Project: ${h.scenario.project}`, `Date: ${new Date(h.at).toLocaleString()}`, `Duration: ${fmt(h.duration)}`, `Outcome: ${h.outcome}`, "",
+    "SUMMARY", h.summary || "-", "", "CUSTOMER REQUEST", h.request || "-", "",
+    "TO-DO", ...(h.todos.length ? h.todos.map(t => `[${t.done ? "x" : " "}] ${t.text}`) : ["-"]), "", "NOTES", h.notes || "-"
+  ].join("\n");
+  let viewing = null;
+  function renderHistory() {
+    $("#histList").innerHTML = history.length ? history.map(h => `
+      <div class="hist">
+        <div><b>${esc(h.scenario.name)}</b> <span class="tag ${h.scenario.type === "outbound" ? "out" : ""}">${h.scenario.type}</span>
+          <div class="muted">${esc(h.scenario.project)} · ${new Date(h.at).toLocaleString()} · ${fmt(h.duration)} · ${esc(h.outcome)}</div></div>
+        <div class="row"><button class="btn small" data-view-h="${h.id}">Open</button><button class="btn small" data-del-h="${h.id}">Delete</button></div>
+      </div>`).join("") : `<div class="empty">No practice calls yet.</div>`;
+    document.querySelectorAll("[data-view-h]").forEach(b => b.onclick = () => {
+      viewing = history.find(h => h.id === b.dataset.viewH);
+      $("#histViewTitle").textContent = viewing.scenario.name; $("#histViewBody").textContent = histText(viewing);
+      $("#histView").classList.remove("hidden");
+    });
+    document.querySelectorAll("[data-del-h]").forEach(b => b.onclick = () => {
+      if (!confirm("Delete this record?")) return;
+      history = history.filter(h => h.id !== b.dataset.delH); save(K_HIST, history); $("#histView").classList.add("hidden"); renderHistory();
+    });
+  }
+  $("#histCopy").onclick = () => viewing && copy(histText(viewing));
+  $("#histClose").onclick = () => $("#histView").classList.add("hidden");
+  $("#exportHist").onclick = () => download("roleplay-history.json", history);
+
+  window.addEventListener("beforeunload", e => { if (inCall) { e.preventDefault(); e.returnValue = ""; } });
+  show("practice");
+})();
+</script>
+</body>
+</html>
