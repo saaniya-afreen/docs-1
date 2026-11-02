@@ -1,4 +1,4 @@
-# Call Role-Play Trainer
+# Role Play
 
 A single-page trainer where an AI **customer** (a OneInbox voice agent) calls the trainee,
 or the trainee calls it, so BPO operators can practise inbound and outbound calls.
