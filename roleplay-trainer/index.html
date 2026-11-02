@@ -232,6 +232,30 @@
     }
   });
 
+  // Runs inside the widget frame before the widget loads:
+  // 1) keeps the widget's shadow DOM reachable so the page can press "Talk to us";
+  // 2) reads the call engine's (SIP.js) state logs: "transitioned to state Established / Terminated".
+  const FRAME_HOOKS = `
+    (function () {
+      var orig = Element.prototype.attachShadow;
+      Element.prototype.attachShadow = function (o) { return orig.call(this, Object.assign({}, o, { mode: "open" })); };
+      window.__rpCall = "idle";
+      ["log", "info", "debug", "warn"].forEach(function (m) {
+        var fn = console[m];
+        console[m] = function () {
+          try {
+            var t = Array.prototype.map.call(arguments, String).join(" ");
+            var st = t.match(/transitioned to state (\\w+)/);
+            if (st) {
+              if (/^Establish(ing|ed)$/.test(st[1])) window.__rpCall = st[1] === "Established" ? "live" : "connecting";
+              if (/^Terminat(ing|ed)$/.test(st[1]) && window.__rpCall !== "idle") window.__rpCall = "ended";
+            }
+          } catch (e) {}
+          return fn.apply(console, arguments);
+        };
+      });
+    })();`;
+
   // ---- call ----
   function connect() {
     call.start = Date.now();
@@ -241,7 +265,8 @@
     const f = document.createElement("iframe");
     f.setAttribute("allow", "microphone; autoplay; clipboard-write");
     f.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<style>html,body{margin:0;height:100%;font-family:system-ui,sans-serif;background:transparent}</style></head>
+<style>html,body{margin:0;height:100%;font-family:system-ui,sans-serif;background:transparent}</style>
+<script>${FRAME_HOOKS}<\/script></head>
 <body><oneinbox-widget public-id="${WIDGETS[call.type]}"></oneinbox-widget><script src="${WIDGET_SRC}" async><\/script></body></html>`;
     $("#fallbackFinish").classList.add("hidden");
     $("#widgetHost").replaceChildren(f);
@@ -284,6 +309,8 @@
       }
       const btns = allButtons(doc).filter(visible);
       tries++;
+      const live = frame.contentWindow && frame.contentWindow.__rpCall;
+      if (phase === "opening" && live && live !== "idle") phase = "in-call";
       if (phase === "opening") {
         const talk = btns.find(isTalk);
         if (talk) { talk.click(); phase = "in-call"; return; }
@@ -295,7 +322,11 @@
         if (tries > 40) $("#fallbackFinish").classList.remove("hidden"); // ~12s and still no "Talk to us"
         return;
       }
-      // in-call: End button present = call running; gone for ~1.5s after being seen = call ended.
+      // Most reliable: the call engine's own state.
+      const st = frame.contentWindow && frame.contentWindow.__rpCall;
+      if (st === "ended") { finishTimeout = setTimeout(finishCall, 800); clearInterval(watchId); return; }
+      if (st === "live" || st === "connecting") { seenEnd = seenEnd || st === "live"; missing = 0; return; }
+      // Otherwise: End button present = call running; gone for ~1.5s after being seen = call ended.
       if (btns.some(isEnd)) { seenEnd = true; missing = 0; }
       else if (seenEnd && ++missing >= 5) finishCall();
       else if (!seenEnd && tries > 60) $("#fallbackFinish").classList.remove("hidden");
