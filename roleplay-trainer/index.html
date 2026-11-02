@@ -116,7 +116,7 @@
       <div>
         <div class="row between" style="margin-bottom:8px">
           <span class="live">LIVE CALL</span>
-          <span class="muted" id="widgetHint">Live transcript appears in the widget below. If it shows a start button, press it to connect.</span>
+          <span class="muted" id="widgetHint">Talk to the customer using the widget below. When the call has ended, go to after-call work.</span>
         </div>
         <div id="widgetHost"></div>
       </div>
@@ -132,7 +132,7 @@
           <h3>Call notes</h3>
           <textarea id="callNotes" placeholder="Take notes while you talk: name, issue, order no., what they want…"></textarea>
         </div>
-        <button class="btn red" id="endCall" style="padding:12px">⏹ End call</button>
+        <button class="btn red" id="endCall" style="padding:12px">✓ Call finished → After-call work</button>
       </div>
     </div>
   </section>
@@ -187,7 +187,7 @@
         <button class="btn primary" id="newScen">+ New customer</button>
       </div>
     </div>
-    <p class="muted" style="margin-top:0">Each customer is one OneInbox agent. Fill in the persona, click <b>Copy agent prompt</b>, paste it into a new agent in OneInbox, then paste that agent's widget <b>public-id</b> here.</p>
+    <p class="muted" style="margin-top:0">Each customer is one OneInbox agent. Set up the agent (persona and prompt) in OneInbox, then add it here with its widget <b>public-id</b> or the full embed code.</p>
     <div id="scenList" class="grid"></div>
 
     <div id="scenForm" class="card hidden" style="margin-top:16px">
@@ -198,19 +198,10 @@
         <div><label>Project / client</label><input id="f_project" placeholder="e.g. Washing machine support"></div>
         <div><label>Call type</label>
           <select id="f_type"><option value="inbound">Inbound (customer calls us)</option><option value="outbound">Outbound (we call the customer)</option></select></div>
-        <div><label>Gender</label><select id="f_gender"><option>Male</option><option>Female</option><option>Other</option></select></div>
-        <div><label>Age</label><input id="f_age" placeholder="e.g. 45"></div>
-        <div><label>Mood</label><input id="f_mood" placeholder="e.g. Annoyed, in a hurry"></div>
-        <div><label>Difficulty</label><select id="f_difficulty"><option>Easy</option><option selected>Medium</option><option>Hard</option></select></div>
-        <div><label>Speaking style</label><input id="f_style" placeholder="e.g. Casual, short answers, a bit vague"></div>
-        <div><label>Language</label><input id="f_language" placeholder="Japanese" value="Japanese"></div>
-        <div class="full"><label>Reason for call / situation</label><textarea id="f_reason" placeholder="e.g. Bought a washing machine 2 weeks ago, it shows error E21 and won't drain."></textarea></div>
-        <div class="full"><label>Objections / pushback</label><textarea id="f_objections" placeholder="e.g. Doesn't want to pay for a repair visit; wants a replacement."></textarea></div>
         <div class="full"><label>Trainer notes (only shown before the call, optional)</label><textarea id="f_brief" placeholder="Goal for the trainee, script to follow, etc."></textarea></div>
         <div class="full"><label>OneInbox widget public-id</label><input id="f_widget" placeholder="e.g. xku7wrqgh3"></div>
       </div>
       <div class="row" style="margin-top:16px; justify-content:flex-end">
-        <button class="btn" id="copyPrompt">📋 Copy agent prompt</button>
         <button class="btn" id="scenCancel">Cancel</button>
         <button class="btn primary" id="scenSave">Save customer</button>
       </div>
@@ -250,82 +241,9 @@
   const WIDGET_SRC = "https://oneinbox-v2-widget.vercel.app/loader.js";
   const K_SCEN = "rpt.scenarios.v1", K_HIST = "rpt.history.v1";
 
-  const PROMPTS = {
-    inbound: `You are {{customer_name}}, a real customer — NOT an assistant, NOT an agent, NOT an AI.
-You are calling a support / sales line for {{project}}. The person who answers is a call-center operator in training. Behave exactly like a real caller so they can practise.
-
-## Who you are
-- Name: {{customer_name}}
-- Gender: {{gender}}
-- Age: {{age}}
-- Speaking style: {{speaking_style}}
-- Current mood: {{mood}}
-
-## Why you are calling
-{{call_reason}}
-
-## Things you may push back on / objections
-{{objections}}
-
-## Difficulty: {{difficulty}}
-- Easy: cooperative, answers questions clearly.
-- Medium: a little impatient, gives information only when asked.
-- Hard: frustrated, interrupts, vague, needs the operator to take control.
-
-## How to speak
-- Talk like a normal person on the phone: short sentences, casual words ("hi", "um", "yeah", "okay").
-- Open the call casually, e.g. "Hi, um, I have a problem with ..." — never a formal script.
-- NEVER say operator phrases: "Thank you for calling", "How may I help you", "Is there anything else I can help with".
-- NEVER offer help, explain solutions, or solve your own problem. You are the one who needs help.
-- Do not give all details at once. Answer what the operator asks; let them lead.
-- If asked for name, phone, address, order/contract number, invent plausible details and stay consistent.
-- React realistically: if the operator is unclear, ask "Sorry, what do you mean?"; if slow, sound a bit impatient.
-- Never mention that you are an AI, a role-play, or training. Stay in character no matter what.
-- Speak in {{language}}.
-
-## Ending the call
-When your issue is resolved or a clear next step is agreed, thank them casually ("Okay, great, thanks. Bye.") and end the call. If the operator is rude or unhelpful for a long time, say you'll call back later and hang up.`,
-    outbound: `You are {{customer_name}}, a real person — NOT an assistant, NOT an agent, NOT an AI.
-You are receiving a phone call from a company about {{project}}. The caller is a sales / call-center operator in training. You did not expect this call. Behave exactly like a real person picking up the phone.
-
-## Who you are
-- Name: {{customer_name}}
-- Gender: {{gender}}
-- Age: {{age}}
-- Speaking style: {{speaking_style}}
-- Current mood: {{mood}}
-
-## Your situation
-{{call_reason}}
-
-## Objections you raise
-{{objections}}
-
-## Difficulty: {{difficulty}}
-- Easy: open to listening, interested if the offer makes sense.
-- Medium: busy and a bit skeptical; needs a clear reason to keep talking.
-- Hard: suspicious of sales calls, tries to end the call early, many objections.
-
-## How to speak
-- Pick up casually: "Hello?" or "Yes, hello?" — then wait for the caller to introduce themselves.
-- Short, natural replies ("uh-huh", "okay", "hmm, I'm not sure"). No formal phrases.
-- NEVER act like the company: do not say "Thank you for calling" or "How can I help you".
-- Do not make the sale easy. Ask natural questions: "Who is this?", "How did you get my number?", "How much is it?", "Can you send me something?"
-- Only agree to the next step if the operator handles your objections well.
-- Invent consistent personal details if asked.
-- Never mention that you are an AI, a role-play, or training. Stay in character.
-- Speak in {{language}}.
-
-## Ending the call
-End naturally: agree to a next step ("Okay, send me the details"), decline politely ("I'm not interested, thanks"), or say you're busy and hang up — depending on how well the operator did.`
-  };
-
   const SEED = [{
     id: "seed-1", name: "Tanaka Hiroshi", phone: "090-1234-5678", project: "Washing machine support",
-    type: "inbound", gender: "Male", age: "52", mood: "Annoyed, in a hurry", difficulty: "Medium",
-    style: "Casual, short answers", language: "Japanese",
-    reason: "Bought a washing machine 2 weeks ago. It shows error E21 and won't drain.",
-    objections: "Doesn't want to pay for a repair visit; asks for a replacement.",
+    type: "inbound",
     brief: "Goal: confirm customer details, identify the error, and book a technician visit.",
     widget: "xku7wrqgh3"
   }];
@@ -368,9 +286,9 @@ End naturally: agree to a next step ("Okay, send me the details"), decline polit
     const list = scenarios.filter(s => (!fp.value || s.project === fp.value) && (!ft || s.type === ft));
     $("#practiceList").innerHTML = list.length ? list.map(s => `
       <div class="card">
-        <div class="row between"><span class="tag ${s.type === "outbound" ? "out" : ""}">${s.type === "outbound" ? "↗ Outbound" : "↙ Inbound"}</span><span class="muted">${esc(s.difficulty)}</span></div>
+        <div class="row between"><span class="tag ${s.type === "outbound" ? "out" : ""}">${s.type === "outbound" ? "↗ Outbound" : "↙ Inbound"}</span></div>
         <h3 style="margin-top:10px">${esc(s.project || "Untitled project")}</h3>
-        <div class="muted">${esc(s.name)} · ${esc(s.gender)}${s.age ? ", " + esc(s.age) : ""}</div>
+        <div class="muted">${esc(s.name)}${s.phone ? " · " + esc(s.phone) : ""}</div>
         <div class="row" style="margin-top:12px">
           <button class="btn primary" data-start="${esc(s.id)}" ${s.widget ? "" : "disabled title='Add a widget public-id first'"}>${s.type === "outbound" ? "📞 Start outbound call" : "🔔 Start inbound call"}</button>
         </div>
@@ -522,24 +440,22 @@ End naturally: agree to a next step ("Okay, send me the details"), decline polit
 
   // ---------- scenarios ----------
   let editing = null;
-  const F = ["name", "phone", "project", "type", "gender", "age", "mood", "difficulty", "style", "language", "reason", "objections", "brief", "widget"];
+  const F = ["name", "phone", "project", "type", "brief", "widget"];
   function renderScenarios() {
     $("#scenList").innerHTML = scenarios.length ? scenarios.map(s => `
       <div class="card">
         <div class="row between"><span class="tag ${s.type === "outbound" ? "out" : ""}">${s.type === "outbound" ? "Outbound" : "Inbound"}</span><code class="muted">${esc(s.widget || "no widget")}</code></div>
         <h3 style="margin-top:10px">${esc(s.name)}</h3>
-        <div class="muted">${esc(s.project)} · ${esc(s.gender)}${s.age ? ", " + esc(s.age) : ""} · ${esc(s.difficulty)}</div>
+        <div class="muted">${esc(s.project)}${s.phone ? " · " + esc(s.phone) : ""}</div>
         <div class="row" style="margin-top:12px">
           <button class="btn small" data-edit="${esc(s.id)}">Edit</button>
           <button class="btn small" data-dup="${esc(s.id)}">Duplicate</button>
-          <button class="btn small" data-prompt="${esc(s.id)}">Copy prompt</button>
           <button class="btn small" data-delscen="${esc(s.id)}">Delete</button>
         </div>
       </div>`).join("") : `<div class="empty card">No customers yet.</div>`;
     const by = id => scenarios.find(s => s.id === id);
     document.querySelectorAll("[data-edit]").forEach(b => b.onclick = () => openForm(by(b.dataset.edit)));
     document.querySelectorAll("[data-dup]").forEach(b => b.onclick = () => openForm({ ...by(b.dataset.dup), id: null, name: by(b.dataset.dup).name + " (copy)" }));
-    document.querySelectorAll("[data-prompt]").forEach(b => b.onclick = () => copy(buildPrompt(by(b.dataset.prompt))));
     document.querySelectorAll("[data-delscen]").forEach(b => b.onclick = () => {
       if (!confirm("Delete this customer?")) return;
       scenarios = scenarios.filter(s => s.id !== b.dataset.delscen); save(K_SCEN, scenarios); renderScenarios();
@@ -548,19 +464,13 @@ End naturally: agree to a next step ("Okay, send me the details"), decline polit
   function openForm(s) {
     editing = s && s.id ? s.id : null;
     $("#scenFormTitle").textContent = editing ? "Edit customer" : "New customer";
-    F.forEach(k => { const el = $("#f_" + k); el.value = s ? (s[k] ?? "") : (k === "language" ? "Japanese" : k === "difficulty" ? "Medium" : el.tagName === "SELECT" ? el.options[0].value : ""); });
+    F.forEach(k => { const el = $("#f_" + k); el.value = s ? (s[k] ?? "") : (el.tagName === "SELECT" ? el.options[0].value : ""); });
     $("#scenForm").classList.remove("hidden");
     $("#scenForm").scrollIntoView({ behavior: "smooth" });
   }
   const readForm = () => Object.fromEntries(F.map(k => [k, $("#f_" + k).value.trim()]));
-  function buildPrompt(s) {
-    const map = { customer_name: s.name, project: s.project, gender: s.gender, age: s.age, mood: s.mood, difficulty: s.difficulty,
-      speaking_style: s.style || "Casual and natural", language: s.language || "Japanese", call_reason: s.reason, objections: s.objections || "None in particular." };
-    return PROMPTS[s.type === "outbound" ? "outbound" : "inbound"].replace(/\{\{(\w+)\}\}/g, (_, k) => map[k] || "(not specified)");
-  }
   $("#newScen").onclick = () => openForm(null);
   $("#scenCancel").onclick = () => $("#scenForm").classList.add("hidden");
-  $("#copyPrompt").onclick = () => copy(buildPrompt(readForm()));
   $("#scenSave").onclick = () => {
     const d = readForm();
     if (!d.name || !d.project) return toast("Name and project are required");
