@@ -75,6 +75,11 @@
   textarea:focus, input:focus { outline: 2px solid var(--soft); border-color: var(--primary); }
   textarea { resize: none; }
   .pane > textarea { flex: 1; border: 0; border-radius: 0; padding: 16px; outline: none; }
+  .row-h { display: flex; justify-content: space-between; align-items: center; }
+  .saved { font-weight: 500; font-size: 12px; color: var(--green); }
+  .saved.saving { color: var(--muted); }
+  .btn.big { width: 100%; padding: 14px; font-size: 16px; font-weight: 600; }
+  .small { font-size: 12px; text-align: center; margin-top: 8px; }
   .pane-foot { padding: 12px 16px; border-top: 1px solid var(--line); }
   .pane .hint { padding: 10px 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
   label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px; }
@@ -125,11 +130,17 @@
   <div class="bar">
     <div class="title"><span class="live"></span><span id="callTitle">Inbound call</span></div>
     <span class="timer" id="timer">00:00</span>
-    <button class="btn primary hidden" id="fallbackFinish">Call ended? Write summary →</button>
   </div>
   <div class="split call-split">
     <div id="widgetHost"></div>
-    <div class="pane"><h3>Notes</h3><textarea id="callNotes" placeholder="Take notes during the call…"></textarea><div class="hint">Your notes are kept. When you end the call in the widget, the summary page opens to add a summary, to-dos and save.</div></div>
+    <div class="pane">
+      <h3 class="row-h">Notes <span class="saved" id="noteStatus">✓ Saved automatically</span></h3>
+      <textarea id="callNotes" placeholder="Take notes during the call…"></textarea>
+      <div class="pane-foot">
+        <button class="btn primary big" id="toSummary">Call ended? Write summary &amp; save →</button>
+        <div class="muted small">End the call in the widget first. Your notes go to the summary page.</div>
+      </div>
+    </div>
   </div>
 </section>
 
@@ -290,6 +301,7 @@
     call.start = Date.now();
     $("#callTitle").textContent = label(call.type);
     $("#callNotes").value = "";
+    $("#noteStatus").textContent = "✓ Saved automatically"; $("#noteStatus").classList.remove("saving");
     // Fresh, isolated widget per call; removing the frame stops it and releases the mic.
     const f = document.createElement("iframe");
     f.setAttribute("allow", "microphone; autoplay; clipboard-write");
@@ -297,7 +309,6 @@
 <style>html,body{margin:0;height:100%;font-family:system-ui,sans-serif;background:transparent}</style>
 <script>${FRAME_HOOKS}<\/script></head>
 <body><oneinbox-widget public-id="${WIDGETS[call.type]}"></oneinbox-widget><script src="${WIDGET_SRC}" async><\/script></body></html>`;
-    $("#fallbackFinish").classList.add("hidden");
     msgState = "idle";
     $("#widgetHost").replaceChildren(f);
     watchWidget(f);
@@ -352,14 +363,12 @@
           const launcher = btns.find(b => /open|launch|chat|call|support|widget/i.test(b.getAttribute("aria-label") || "")) || btns[btns.length - 1];
           launcher.click(); launcherClicked = true;
         }
-        if (tries > 40) $("#fallbackFinish").classList.remove("hidden"); // ~12s and still no "Talk to us"
         return;
       }
       if (st === "live" || st === "connecting") { seenEnd = seenEnd || st === "live"; missing = 0; return; }
       // Otherwise: End button present = call running; gone for ~1.5s after being seen = call ended.
       if (btns.some(isEnd)) { seenEnd = true; missing = 0; }
       else if (seenEnd && ++missing >= 5) finishCall();
-      else if (!seenEnd && tries > 60) $("#fallbackFinish").classList.remove("hidden");
     }, 300);
   }
 
@@ -376,7 +385,20 @@
     show("acw");
     $("#summary").focus();
   }
-  $("#fallbackFinish").onclick = finishCall;
+  $("#toSummary").onclick = finishCall;
+
+  // Notes autosave (kept in this browser so a refresh during the call doesn't lose them).
+  const DRAFT = "roleplay.draft.v1";
+  let saveT = null;
+  $("#callNotes").addEventListener("input", () => {
+    $("#noteStatus").textContent = "Saving…"; $("#noteStatus").classList.add("saving");
+    clearTimeout(saveT);
+    saveT = setTimeout(() => {
+      try { localStorage.setItem(DRAFT, JSON.stringify({ type: call && call.type, start: call && call.start, notes: $("#callNotes").value })); } catch {}
+      $("#noteStatus").textContent = "✓ Saved automatically"; $("#noteStatus").classList.remove("saving");
+    }, 500);
+  });
+  const clearDraft = () => { try { localStorage.removeItem(DRAFT); } catch {} };
 
   // ---- after call ----
   function renderTodos() {
@@ -389,11 +411,11 @@
   $("#todoAdd").onclick = addTodo;
   $("#todoInput").onkeydown = e => { if (e.key === "Enter") addTodo(); };
 
-  $("#discard").onclick = () => { if (confirm("Discard this call?")) { call = null; show("home"); } };
+  $("#discard").onclick = () => { if (confirm("Discard this call?")) { clearDraft(); call = null; show("home"); } };
   const saveCall = () => {
     const calls = load();
     calls.unshift({ type: call.type, at: call.start, duration: call.duration, summary: $("#summary").value, todos, notes: $("#acwNotes").value });
-    store(calls.slice(0, 50)); call = null; show("home");
+    store(calls.slice(0, 50)); clearDraft(); call = null; show("home");
   };
   document.querySelectorAll(".save-btn").forEach(b => b.onclick = saveCall);
 
@@ -411,6 +433,17 @@
       store(load().filter(c => String(c.at) !== b.dataset.delCall)); renderRecent();
     });
   }
+
+  // Recover notes from a call that was interrupted (page refreshed or closed mid-call).
+  try {
+    const d = JSON.parse(localStorage.getItem(DRAFT) || "null");
+    if (d && d.notes && d.notes.trim()) {
+      const calls = load();
+      calls.unshift({ type: d.type || "inbound", at: d.start || Date.now(), duration: 0, summary: "(Call interrupted — notes recovered)", todos: [], notes: d.notes });
+      store(calls.slice(0, 50));
+    }
+  } catch {}
+  clearDraft();
 
   window.addEventListener("beforeunload", e => { if (!$("#call").classList.contains("hidden")) { e.preventDefault(); e.returnValue = ""; } });
   show("home");
