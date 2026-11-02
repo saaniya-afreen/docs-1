@@ -38,6 +38,9 @@
   .rec summary { list-style: none; display: flex; justify-content: space-between; gap: 12px; padding: 12px 16px; cursor: pointer; }
   .rec summary::-webkit-details-marker { display: none; }
   .rec .meta { margin-left: auto; }
+  .chev { color: var(--muted); transition: transform .15s; flex: none; }
+  .rec[open] .chev { transform: rotate(90deg); }
+  .rec summary { align-items: center; }
   .del { border: 0; background: none; color: var(--muted); padding: 2px 6px; border-radius: 6px; display: grid; place-items: center; }
   .del:hover { color: var(--red); background: #fef2f2; }
   .rec .body { padding: 0 16px 14px; white-space: pre-wrap; font-size: 14px; }
@@ -72,6 +75,8 @@
   textarea:focus, input:focus { outline: 2px solid var(--soft); border-color: var(--primary); }
   textarea { resize: none; }
   .pane > textarea { flex: 1; border: 0; border-radius: 0; padding: 16px; outline: none; }
+  .pane-foot { padding: 12px 16px; border-top: 1px solid var(--line); }
+  .pane .hint { padding: 10px 16px; border-top: 1px solid var(--line); font-size: 13px; color: var(--muted); }
   label { font-size: 13px; font-weight: 600; display: block; margin-bottom: 6px; }
   .todo-add { display: flex; gap: 8px; }
   .todo { display: flex; align-items: center; gap: 10px; padding: 8px 0; border-bottom: 1px solid var(--line); }
@@ -120,20 +125,20 @@
   <div class="bar">
     <div class="title"><span class="live"></span><span id="callTitle">Inbound call</span></div>
     <span class="timer" id="timer">00:00</span>
-    <button class="btn hidden" id="fallbackFinish">Call ended? Write summary</button>
+    <button class="btn primary hidden" id="fallbackFinish">Call ended? Write summary →</button>
   </div>
   <div class="split call-split">
     <div id="widgetHost"></div>
-    <div class="pane"><h3>Notes</h3><textarea id="callNotes" placeholder="Take notes during the call…"></textarea></div>
+    <div class="pane"><h3>Notes</h3><textarea id="callNotes" placeholder="Take notes during the call…"></textarea><div class="hint">Your notes are kept. When you end the call in the widget, the summary page opens to add a summary, to-dos and save.</div></div>
   </div>
 </section>
 
 <!-- AFTER CALL -->
 <section id="acw" class="screen hidden">
   <div class="bar">
-    <div class="title">After call <span class="muted" id="acwMeta" style="font-weight:400"></span></div>
+    <div class="title">✅ Call ended — write your summary and save <span class="muted" id="acwMeta" style="font-weight:400"></span></div>
     <button class="btn" id="discard">Discard</button>
-    <button class="btn primary" id="save">Save</button>
+    <button class="btn primary save-btn">Save call</button>
   </div>
   <div class="split">
     <div class="pane">
@@ -146,6 +151,7 @@
           <div id="todos" style="margin-top:8px"></div>
         </div>
       </div>
+      <div class="pane-foot"><button class="btn primary save-btn" style="width:100%; padding:12px">Save call</button></div>
     </div>
     <div class="pane"><h3>Notes from the call</h3><textarea id="acwNotes"></textarea></div>
   </div>
@@ -257,7 +263,27 @@
           return fn.apply(console, arguments);
         };
       });
+      window.addEventListener("message", function (e) { window.parent.__rpWidgetMsg && window.parent.__rpWidgetMsg(e.data, "frame"); });
+      setTimeout(function () {
+        var srcs = [];
+        (function walk(root) { root.querySelectorAll("*").forEach(function (el) { if (el.tagName === "IFRAME") srcs.push(el.src || "(inline)"); if (el.shadowRoot) walk(el.shadowRoot); }); })(document);
+        console.info("[RolePlay] widget frames:", JSON.stringify(srcs));
+      }, 4000);
     })();`;
+
+  // Widget messages: logged to the console as "[RolePlay] widget message" to help diagnose,
+  // and used to detect call start / end when the widget runs on its own domain.
+  let msgState = "idle";
+  const END_RE = /call[-_ ]?(ended|end|terminated|hangup|hung[-_ ]?up|disconnected|finished)|"?(type|event|status|state)"?\s*:\s*"(ended|terminated|disconnected|hangup|call_end|completed)"|session[-_ ]?(ended|terminated)|terminated/i;
+  const LIVE_RE = /call[-_ ]?(started|start|connected|active|established|answered)|established|"(status|state)"\s*:\s*"(active|connected|in[-_ ]?call|live)"/i;
+  window.__rpWidgetMsg = (data, where) => {
+    let t; try { t = typeof data === "string" ? data : JSON.stringify(data); } catch { t = String(data); }
+    if (!t || !call || $("#call").classList.contains("hidden")) return;
+    console.info("[RolePlay] widget message (" + where + "):", t.slice(0, 400));
+    if (END_RE.test(t)) { msgState = "ended"; console.info("[RolePlay] call end detected"); }
+    else if (LIVE_RE.test(t)) msgState = "live";
+  };
+  window.addEventListener("message", e => window.__rpWidgetMsg(e.data, "page"));
 
   // ---- call ----
   function connect() {
@@ -272,6 +298,7 @@
 <script>${FRAME_HOOKS}<\/script></head>
 <body><oneinbox-widget public-id="${WIDGETS[call.type]}"></oneinbox-widget><script src="${WIDGET_SRC}" async><\/script></body></html>`;
     $("#fallbackFinish").classList.add("hidden");
+    msgState = "idle";
     $("#widgetHost").replaceChildren(f);
     watchWidget(f);
     $("#timer").textContent = "00:00";
@@ -312,8 +339,11 @@
       }
       const btns = allButtons(doc).filter(visible);
       tries++;
-      const live = frame.contentWindow && frame.contentWindow.__rpCall;
-      if (phase === "opening" && live && live !== "idle") phase = "in-call";
+      // Call ended (engine state or widget message), whoever started it.
+      let st = frame.contentWindow && frame.contentWindow.__rpCall;
+      if (msgState === "ended" && Date.now() - call.start > 4000) st = "ended";
+      if (st === "ended") { clearInterval(watchId); finishTimeout = setTimeout(finishCall, 800); return; }
+      if (phase === "opening" && (st === "live" || st === "connecting" || msgState === "live")) phase = "in-call";
       if (phase === "opening") {
         const talk = btns.find(isTalk);
         if (talk) { talk.click(); phase = "in-call"; return; }
@@ -325,9 +355,6 @@
         if (tries > 40) $("#fallbackFinish").classList.remove("hidden"); // ~12s and still no "Talk to us"
         return;
       }
-      // Most reliable: the call engine's own state.
-      const st = frame.contentWindow && frame.contentWindow.__rpCall;
-      if (st === "ended") { finishTimeout = setTimeout(finishCall, 800); clearInterval(watchId); return; }
       if (st === "live" || st === "connecting") { seenEnd = seenEnd || st === "live"; missing = 0; return; }
       // Otherwise: End button present = call running; gone for ~1.5s after being seen = call ended.
       if (btns.some(isEnd)) { seenEnd = true; missing = 0; }
@@ -363,17 +390,18 @@
   $("#todoInput").onkeydown = e => { if (e.key === "Enter") addTodo(); };
 
   $("#discard").onclick = () => { if (confirm("Discard this call?")) { call = null; show("home"); } };
-  $("#save").onclick = () => {
+  const saveCall = () => {
     const calls = load();
     calls.unshift({ type: call.type, at: call.start, duration: call.duration, summary: $("#summary").value, todos, notes: $("#acwNotes").value });
     store(calls.slice(0, 50)); call = null; show("home");
   };
+  document.querySelectorAll(".save-btn").forEach(b => b.onclick = saveCall);
 
   function renderRecent() {
     const calls = load();
     $("#recentWrap").classList.toggle("hidden", !calls.length);
     $("#recent").innerHTML = calls.slice(0, 10).map(c => `<details class="rec">
-      <summary><span>${label(c.type)}</span><span class="muted meta">${new Date(c.at).toLocaleString()} · ${fmt(c.duration)}</span>
+      <summary><svg class="chev" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 6l6 6-6 6"/></svg><span>${label(c.type)}</span><span class="muted meta">${new Date(c.at).toLocaleString()} · ${fmt(c.duration)}</span>
         <button class="del" data-del-call="${c.at}" aria-label="Delete call" title="Delete"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></summary>
       <div class="body"><b>Summary</b>\n${esc(c.summary || "—")}\n\n<b>To-do</b>\n${c.todos.length ? c.todos.map(t => (t.done ? "☑ " : "☐ ") + esc(t.text)).join("\n") : "—"}\n\n<b>Notes</b>\n${esc(c.notes || "—")}</div>
     </details>`).join("");
