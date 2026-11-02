@@ -117,7 +117,7 @@
   <div class="bar">
     <div class="title"><span class="live"></span><span id="callTitle">Inbound call</span></div>
     <span class="timer" id="timer">00:00</span>
-    <button class="btn primary" id="endCall">Finish &amp; write summary</button>
+    <button class="btn hidden" id="fallbackFinish">Call ended? Write summary</button>
   </div>
   <div class="split call-split">
     <div id="widgetHost"></div>
@@ -243,13 +243,68 @@
     f.srcdoc = `<!doctype html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <style>html,body{margin:0;height:100%;font-family:system-ui,sans-serif;background:transparent}</style></head>
 <body><oneinbox-widget public-id="${WIDGETS[call.type]}"></oneinbox-widget><script src="${WIDGET_SRC}" async><\/script></body></html>`;
+    $("#fallbackFinish").classList.add("hidden");
     $("#widgetHost").replaceChildren(f);
+    watchWidget(f);
     $("#timer").textContent = "00:00";
     timerId = setInterval(() => $("#timer").textContent = fmt(Math.floor((Date.now() - call.start) / 1000)), 1000);
     show("call");
   }
 
-  $("#endCall").onclick = () => {
+  // ---- widget automation ----
+  // The widget lives in a same-origin frame, so we can drive it: press "Talk to us" as soon as
+  // it appears, and move to the summary screen once its call ends (End clicked or call dropped).
+  let watchId = null, finishTimeout = null;
+  const text = el => (el.innerText || el.textContent || el.getAttribute("aria-label") || "").trim();
+  const isTalk = el => /talk to us|start call|call now|^call$/i.test(text(el));
+  const isEnd = el => /^(end|end call|hang ?up)$/i.test(text(el));
+  function allButtons(root, out = []) {
+    root.querySelectorAll("*").forEach(el => {
+      if (el.tagName === "BUTTON" || el.getAttribute("role") === "button") out.push(el);
+      if (el.shadowRoot) allButtons(el.shadowRoot, out);
+    });
+    return out;
+  }
+  const visible = el => el.getClientRects().length > 0;
+
+  function watchWidget(frame) {
+    clearInterval(watchId); clearTimeout(finishTimeout);
+    let phase = "opening", seenEnd = false, missing = 0, tries = 0, launcherClicked = false;
+    watchId = setInterval(() => {
+      let doc;
+      try { doc = frame.contentDocument; } catch { doc = null; }
+      if (!doc) return;
+      if (!doc.__rpListen) {
+        doc.__rpListen = true;
+        // Catch clicks on the widget's own End button (works through open shadow roots).
+        doc.addEventListener("click", e => {
+          if (e.composedPath().some(n => n.nodeType === 1 && (n.tagName === "BUTTON" || n.getAttribute?.("role") === "button") && isEnd(n)))
+            finishTimeout = setTimeout(finishCall, 1200);
+        }, true);
+      }
+      const btns = allButtons(doc).filter(visible);
+      tries++;
+      if (phase === "opening") {
+        const talk = btns.find(isTalk);
+        if (talk) { talk.click(); phase = "in-call"; return; }
+        // Panel closed: open it with the launcher (the floating round button).
+        if (!launcherClicked && tries > 3 && btns.length) {
+          const launcher = btns.find(b => /open|launch|chat|call|support|widget/i.test(b.getAttribute("aria-label") || "")) || btns[btns.length - 1];
+          launcher.click(); launcherClicked = true;
+        }
+        if (tries > 40) $("#fallbackFinish").classList.remove("hidden"); // ~12s and still no "Talk to us"
+        return;
+      }
+      // in-call: End button present = call running; gone for ~1.5s after being seen = call ended.
+      if (btns.some(isEnd)) { seenEnd = true; missing = 0; }
+      else if (seenEnd && ++missing >= 5) finishCall();
+      else if (!seenEnd && tries > 60) $("#fallbackFinish").classList.remove("hidden");
+    }, 300);
+  }
+
+  function finishCall() {
+    if (!call || $("#call").classList.contains("hidden")) return;
+    clearInterval(watchId); clearTimeout(finishTimeout);
     clearInterval(timerId);
     call.duration = Math.floor((Date.now() - call.start) / 1000);
     $("#widgetHost").replaceChildren();
@@ -259,7 +314,8 @@
     todos = []; renderTodos();
     show("acw");
     $("#summary").focus();
-  };
+  }
+  $("#fallbackFinish").onclick = finishCall;
 
   // ---- after call ----
   function renderTodos() {
