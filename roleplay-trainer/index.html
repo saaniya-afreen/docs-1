@@ -37,6 +37,9 @@
   .rec { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; margin-bottom: 8px; }
   .rec summary { list-style: none; display: flex; justify-content: space-between; gap: 12px; padding: 12px 16px; cursor: pointer; }
   .rec summary::-webkit-details-marker { display: none; }
+  .rec .meta { margin-left: auto; }
+  .del { border: 0; background: none; color: var(--muted); padding: 2px 6px; border-radius: 6px; display: grid; place-items: center; }
+  .del:hover { color: var(--red); background: #fef2f2; }
   .rec .body { padding: 0 16px 14px; white-space: pre-wrap; font-size: 14px; }
 
   /* Phone overlay */
@@ -370,9 +373,15 @@
     const calls = load();
     $("#recentWrap").classList.toggle("hidden", !calls.length);
     $("#recent").innerHTML = calls.slice(0, 10).map(c => `<details class="rec">
-      <summary><span>${label(c.type)}</span><span class="muted">${new Date(c.at).toLocaleString()} · ${fmt(c.duration)}</span></summary>
+      <summary><span>${label(c.type)}</span><span class="muted meta">${new Date(c.at).toLocaleString()} · ${fmt(c.duration)}</span>
+        <button class="del" data-del-call="${c.at}" aria-label="Delete call" title="Delete"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 6h18"/><path d="M8 6V4h8v2"/><path d="M19 6l-1 14H6L5 6"/></svg></button></summary>
       <div class="body"><b>Summary</b>\n${esc(c.summary || "—")}\n\n<b>To-do</b>\n${c.todos.length ? c.todos.map(t => (t.done ? "☑ " : "☐ ") + esc(t.text)).join("\n") : "—"}\n\n<b>Notes</b>\n${esc(c.notes || "—")}</div>
     </details>`).join("");
+    $("#recent").querySelectorAll("[data-del-call]").forEach(b => b.onclick = e => {
+      e.preventDefault(); e.stopPropagation();
+      if (!confirm("Delete this call?")) return;
+      store(load().filter(c => String(c.at) !== b.dataset.delCall)); renderRecent();
+    });
   }
 
   window.addEventListener("beforeunload", e => { if (!$("#call").classList.contains("hidden")) { e.preventDefault(); e.returnValue = ""; } });
