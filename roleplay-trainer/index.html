@@ -1,0 +1,213 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Call Role-Play Trainer</title>
+  <link rel="icon" href="../favicon.svg">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="dot"></span>
+      <strong>Role-Play Trainer</strong>
+      <span class="muted">· OneInbox AI customers</span>
+    </div>
+    <div class="agent-status">
+      <label for="trainee-name" class="muted">Trainee</label>
+      <input id="trainee-name" placeholder="Your name">
+      <span id="status-pill" class="pill pill-ready">Ready</span>
+    </div>
+  </header>
+
+  <div class="layout">
+    <!-- Left: scenario picker -->
+    <aside class="sidebar">
+      <div class="tabs" role="tablist">
+        <button class="tab active" data-dir="inbound" role="tab">Inbound</button>
+        <button class="tab" data-dir="outbound" role="tab">Outbound</button>
+      </div>
+      <input id="filter" class="filter" placeholder="Filter by project or name">
+      <ul id="scenario-list" class="scenario-list"></ul>
+      <div class="sidebar-actions">
+        <button id="new-scenario" class="btn btn-secondary">+ New scenario</button>
+        <div class="row">
+          <button id="export-scenarios" class="btn btn-ghost">Export</button>
+          <label class="btn btn-ghost">Import<input id="import-scenarios" type="file" accept="application/json" hidden></label>
+        </div>
+        <button id="open-history" class="btn btn-ghost">Session history</button>
+      </div>
+    </aside>
+
+    <!-- Center: call workspace -->
+    <main class="workspace">
+      <!-- Idle -->
+      <section id="view-idle" class="view">
+        <div id="idle-card" class="card center">
+          <p class="muted">Pick a scenario on the left to start a practice call.</p>
+        </div>
+      </section>
+
+      <!-- Ringing / dialing -->
+      <section id="view-ringing" class="view hidden">
+        <div class="card center ring-card">
+          <div id="ring-avatar" class="avatar ringing"></div>
+          <p id="ring-label" class="eyebrow">Incoming call</p>
+          <h2 id="ring-name"></h2>
+          <p id="ring-phone" class="muted mono"></p>
+          <p id="ring-project" class="tag"></p>
+          <div class="row center-row">
+            <button id="btn-decline" class="btn btn-danger round">Decline</button>
+            <button id="btn-answer" class="btn btn-success round">Answer</button>
+          </div>
+        </div>
+      </section>
+
+      <!-- Active call -->
+      <section id="view-call" class="view hidden">
+        <div class="call-header card">
+          <div>
+            <p class="eyebrow" id="call-dir-label">On call</p>
+            <h2 id="call-name"></h2>
+            <p class="muted"><span id="call-phone" class="mono"></span><span id="call-sep"> · </span><span id="call-project"></span></p>
+          </div>
+          <div class="call-controls">
+            <span id="call-timer" class="timer mono">00:00</span>
+            <button id="btn-hold" class="btn btn-secondary">Hold</button>
+            <button id="btn-hangup" class="btn btn-danger">End call</button>
+          </div>
+        </div>
+        <div class="call-grid">
+          <div class="card widget-card">
+            <div class="card-title">
+              <span>Voice &amp; live transcript</span>
+              <span class="muted small">Start the call in the widget below</span>
+            </div>
+            <div id="widget-slot" class="widget-slot"></div>
+          </div>
+          <div class="card notes-card">
+            <div class="card-title">
+              <span>Call notes</span>
+              <button id="btn-stamp" class="btn btn-ghost small" title="Insert timestamp (Ctrl/Cmd+Enter)">+ Timestamp</button>
+            </div>
+            <div class="customer-facts" id="call-facts"></div>
+            <textarea id="live-notes" placeholder="Take notes while you talk: name, issue, order no., what they want…"></textarea>
+          </div>
+        </div>
+      </section>
+
+      <!-- After-call work -->
+      <section id="view-acw" class="view hidden">
+        <div class="card">
+          <div class="card-title">
+            <span>After-call work (ACW) — <span id="acw-name"></span></span>
+            <span class="muted small">Call <span id="acw-duration" class="mono"></span> · ACW <span id="acw-timer" class="mono">00:00</span></span>
+          </div>
+          <div class="acw-grid">
+            <div>
+              <label class="label" for="acw-notes">Notes from the call</label>
+              <textarea id="acw-notes" rows="6"></textarea>
+
+              <label class="label" for="acw-summary">Call summary</label>
+              <textarea id="acw-summary" rows="5" placeholder="What happened on the call, in 2–4 sentences."></textarea>
+
+              <label class="label" for="acw-request">What the customer wants</label>
+              <input id="acw-request" placeholder="e.g. Repair visit, refund, upgrade to 1 Gbps">
+            </div>
+            <div>
+              <label class="label">To-do list</label>
+              <div class="row">
+                <input id="todo-input" placeholder="Add a follow-up task and press Enter">
+                <button id="todo-add" class="btn btn-secondary">Add</button>
+              </div>
+              <ul id="todo-list" class="todo-list"></ul>
+
+              <label class="label" for="acw-disposition">Call result</label>
+              <select id="acw-disposition">
+                <option value="">Select…</option>
+                <option>Resolved</option>
+                <option>Follow-up required</option>
+                <option>Escalated</option>
+                <option>Sale / appointment booked</option>
+                <option>Callback scheduled</option>
+                <option>Not interested</option>
+                <option>No answer / declined</option>
+              </select>
+
+              <label class="label" for="acw-self">Self-review (optional)</label>
+              <textarea id="acw-self" rows="3" placeholder="What went well? What would you do differently?"></textarea>
+            </div>
+          </div>
+          <div class="row end-row">
+            <button id="acw-discard" class="btn btn-ghost">Discard</button>
+            <button id="acw-download" class="btn btn-secondary">Download</button>
+            <button id="acw-save" class="btn btn-primary">Save &amp; finish</button>
+          </div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Scenario editor -->
+  <dialog id="scenario-dialog">
+    <form id="scenario-form" method="dialog">
+      <h3 id="scenario-dialog-title">New scenario</h3>
+      <div class="form-grid">
+        <label>Direction
+          <select name="direction">
+            <option value="inbound">Inbound (customer calls trainee)</option>
+            <option value="outbound">Outbound (trainee calls customer)</option>
+          </select>
+        </label>
+        <label>Difficulty
+          <select name="difficulty">
+            <option value="easy">Easy</option>
+            <option value="medium" selected>Medium</option>
+            <option value="hard">Hard</option>
+          </select>
+        </label>
+        <label class="span-2">Project / industry
+          <input name="project" required placeholder="e.g. Antivirus software">
+        </label>
+        <label>Customer name<input name="name" required></label>
+        <label>Phone shown on caller ID<input name="phone"></label>
+        <label>Gender<input name="gender" placeholder="Female / Male / –"></label>
+        <label>Age<input name="age" type="number" min="0" max="120"></label>
+        <label class="span-2">Brief for the trainee
+          <textarea name="brief" rows="2" placeholder="What the trainee knows before the call. Keep the persona's secrets in the OneInbox prompt."></textarea>
+        </label>
+        <label class="span-2">OneInbox widget embed code
+          <textarea name="widgetCode" rows="5" class="mono" placeholder="Paste the widget snippet for the customer agent built in OneInbox"></textarea>
+        </label>
+        <label class="span-2">Widget mode
+          <select name="widgetMode">
+            <option value="iframe">Isolated frame (recommended — fully removed on hang-up)</option>
+            <option value="inline">Inline on the page (use if the widget won't load in a frame)</option>
+          </select>
+        </label>
+      </div>
+      <div class="row end-row">
+        <button type="button" id="scenario-delete" class="btn btn-danger hidden">Delete</button>
+        <span class="spacer"></span>
+        <button type="button" id="scenario-cancel" class="btn btn-ghost">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </dialog>
+
+  <!-- History -->
+  <dialog id="history-dialog">
+    <h3>Session history</h3>
+    <div id="history-list" class="history-list"></div>
+    <div class="row end-row">
+      <button id="history-export" class="btn btn-secondary">Export all (JSON)</button>
+      <button id="history-clear" class="btn btn-ghost">Clear</button>
+      <button id="history-close" class="btn btn-primary">Close</button>
+    </div>
+  </dialog>
+
+  <script src="scenarios.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
