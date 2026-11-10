@@ -1,0 +1,8 @@
+services:
+  - type: web
+    name: scenario-api
+    runtime: python
+    rootDir: scenario-api
+    plan: free
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn -w 1 -b 0.0.0.0:$PORT scenario_api:app
